@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Quelldateien">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Headerdateien">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Ressourcendateien">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Headerdateien\websocket">
+      <UniqueIdentifier>{3f619971-5174-416d-868e-7c9b63d38801}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelldateien\websocket">
+      <UniqueIdentifier>{5400fcc2-2f2f-4944-956f-e9655a8fbdfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headerdateien\http">
+      <UniqueIdentifier>{2ed8ae6d-bd34-42b8-a46d-f0c6a02f9628}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelldateien\http">
+      <UniqueIdentifier>{9158d5d8-f8d9-4d72-a252-4941f59bcde0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Ressourcendateien\public">
+      <UniqueIdentifier>{b67cc958-2dfb-4864-a8ac-64bf674c64c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelldateien\http\mw">
+      <UniqueIdentifier>{93c01192-59ec-46cd-ab0a-442c67315f21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Quelldateien\http\route">
+      <UniqueIdentifier>{bfc10ab7-82d1-48c6-98b0-d4120cbc7c68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headerdateien\http\mw">
+      <UniqueIdentifier>{597b641f-549c-4290-b21b-9d6a439ff678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headerdateien\http\route">
+      <UniqueIdentifier>{db482fda-2d90-46e7-a9a3-de80018c014b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="attribute.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="handler.grpc.pb.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="handler.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="handler.pb.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="picojson.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="uri.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="websocket\con_handler.h">
+      <Filter>Headerdateien\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="websocket\connection.h">
+      <Filter>Headerdateien\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="websocket\hub.h">
+      <Filter>Headerdateien\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="http\middleware.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mime.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\request.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\response.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\route_handler.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\route_params.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\router.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mw\logger.h">
+      <Filter>Headerdateien\http\mw</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mw\mime_type.h">
+      <Filter>Headerdateien\http\mw</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mw\request_forward.h">
+      <Filter>Headerdateien\http\mw</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mw\response_forward.h">
+      <Filter>Headerdateien\http\mw</Filter>
+    </ClInclude>
+    <ClInclude Include="http\mw\rewrite.h">
+      <Filter>Headerdateien\http\mw</Filter>
+    </ClInclude>
+    <ClInclude Include="http\route\filesystem_route_handler.h">
+      <Filter>Headerdateien\http\route</Filter>
+    </ClInclude>
+    <ClInclude Include="http\route\function_route_handler.h">
+      <Filter>Headerdateien\http\route</Filter>
+    </ClInclude>
+    <ClInclude Include="server.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="handler.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="uri.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="handler.grpc.pb.cc">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="handler.pb.cc">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="websocket\hub.cpp">
+      <Filter>Quelldateien\websocket</Filter>
+    </ClCompile>
+    <ClCompile Include="http\router.cpp">
+      <Filter>Quelldateien\http</Filter>
+    </ClCompile>
+    <ClCompile Include="http\mw\logger.cpp">
+      <Filter>Quelldateien\http\mw</Filter>
+    </ClCompile>
+    <ClCompile Include="http\mw\mime_type.cpp">
+      <Filter>Quelldateien\http\mw</Filter>
+    </ClCompile>
+    <ClCompile Include="http\mw\rewrite.cpp">
+      <Filter>Quelldateien\http\mw</Filter>
+    </ClCompile>
+    <ClCompile Include="http\route\filesystem_route_handler.cpp">
+      <Filter>Quelldateien\http\route</Filter>
+    </ClCompile>
+    <ClCompile Include="server.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="handler.proto" />
+    <None Include="mime.types" />
+    <None Include="public\index.html">
+      <Filter>Ressourcendateien\public</Filter>
+    </None>
+  </ItemGroup>
+</Project>
