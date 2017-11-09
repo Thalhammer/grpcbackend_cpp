@@ -1,5 +1,6 @@
 #include "filesystem_route_handler.h"
 #include "../route_params.h"
+#include "../notfound_exception.h"
 #include <vector>
 #include <ttl/string_util.h>
 #include <boost/filesystem.hpp>
@@ -73,8 +74,7 @@ namespace thalhammer {
 									stream.rdbuf()->pubsync();
 								}
 								else {
-									resp.set_status(404, "Not found");
-									resp.get_ostream() << "Not found";
+									throw notfound_exception();
 								}
 							}
 						}
@@ -112,13 +112,11 @@ namespace thalhammer {
 							stream << "</table></body></html>";
 						}
 						else {
-							resp.set_status(404, "Not found");
-							resp.get_ostream() << "Not found";
+							throw notfound_exception();
 						}
 					}
 					else {
-						resp.set_status(404, "Not found");
-						resp.get_ostream() << "Not found";
+						throw notfound_exception();
 					}
 				}
 			}

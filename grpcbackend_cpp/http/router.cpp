@@ -7,6 +7,7 @@
 #include "route/filesystem_route_handler.h"
 #include "mw/logger.h"
 #include "mw/mime_type.h"
+#include "notfound_exception.h"
 
 using namespace std::string_literals;
 
@@ -24,6 +25,8 @@ namespace thalhammer {
 				std::multimap<pos, middleware_ptr> middleware;
 				std::map<std::string, std::vector<route_entry>> routes;
 				bool debug_mode;
+				notfound_handler_t notfound_handler;
+				error_handler_t error_handler;
 			};
 
 			router::router()
@@ -81,6 +84,36 @@ namespace thalhammer {
 				auto info = std::make_shared<routing_info>(*pinfo);
 				// Modify
 				info->debug_mode = b;
+				// Copy to class instance
+				std::atomic_store(&_routing, info);
+
+				return *this;
+			}
+
+			router& router::notfound(notfound_handler_t fn)
+			{
+				std::lock_guard<std::mutex> lck(_routing_update_mtx);
+				// Get local pointer
+				std::shared_ptr<const routing_info> pinfo = std::atomic_load(&_routing);
+				// Copy it
+				auto info = std::make_shared<routing_info>(*pinfo);
+				// Modify
+				info->notfound_handler = fn;
+				// Copy to class instance
+				std::atomic_store(&_routing, info);
+
+				return *this;
+			}
+
+			router& router::error(error_handler_t fn)
+			{
+				std::lock_guard<std::mutex> lck(_routing_update_mtx);
+				// Get local pointer
+				std::shared_ptr<const routing_info> pinfo = std::atomic_load(&_routing);
+				// Copy it
+				auto info = std::make_shared<routing_info>(*pinfo);
+				// Modify
+				info->error_handler = fn;
 				// Copy to class instance
 				std::atomic_store(&_routing, info);
 
@@ -152,7 +185,9 @@ namespace thalhammer {
 				auto& map = info->routes;
 
 				if (map.count(method) == 0) {
-					resp.set_status(404);
+					if(info->notfound_handler)
+						info->notfound_handler(req, resp);
+					else resp.set_status(404);
 					return;
 				}
 				auto& entries = map.at(method);
@@ -169,9 +204,10 @@ namespace thalhammer {
 						}
 
 						if (matches.size() != e.keys.size() + 1) {
-							resp.set_status(500, "Internal error");
 							if (info->debug_mode)
 								resp.set_header("X-Exception", "Regex size check failed");
+							if(info->error_handler) info->error_handler(req, resp, "Internal error", nullptr);
+							else resp.set_status(500, "Internal error");
 							return;
 						}
 
@@ -184,15 +220,21 @@ namespace thalhammer {
 				}
 
 				if (!handler) {
-					resp.set_status(404);
+					if(info->notfound_handler)
+						info->notfound_handler(req, resp);
+					else resp.set_status(404);
 					return;
 				}
 
 				try {
 					handler->handle_request(req, resp);
 				}
+				catch (const notfound_exception& ex) {
+					if(info->notfound_handler)
+						info->notfound_handler(req, resp);
+					else resp.set_status(404);
+				}
 				catch (...) {
-					resp.set_status(500, "Internal error");
 					if (info->debug_mode) {
 						try {
 							throw;
@@ -204,6 +246,8 @@ namespace thalhammer {
 							resp.set_header("X-Exception", "unknown");
 						}
 					}
+					if(info->error_handler) info->error_handler(req, resp, "Internal error", std::current_exception());
+					else resp.set_status(500, "Internal error");
 				}
 			}
 

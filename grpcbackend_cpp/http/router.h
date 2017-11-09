@@ -4,6 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <regex>
+#include <exception>
 
 namespace thalhammer {
 	class logger;
@@ -17,10 +18,15 @@ namespace thalhammer {
 					LAST=20
 				};
 
+				typedef std::function<void(request&, response&)> notfound_handler_t;
+				typedef std::function<void(request&, response&, const std::string&, std::exception_ptr)> error_handler_t;
+
 				router();
 				router& route(route_handler_ptr handler);
 				router& use(middleware_ptr m, pos p = pos::DEFAULT);
 				router& set_debug_mode(bool b);
+				router& notfound(notfound_handler_t fn);
+				router& error(error_handler_t fn);
 
 				void handle_request(request& req, response& resp);
 

@@ -2,7 +2,7 @@ PROTOSRC := $(shell find . -name '*.proto')
 PROTOHEADERS := $(PROTOSRC:.proto=.grpc.pb.h) $(PROTOSRC:.proto=.pb.h)
 PROTOGEN := $(PROTOHEADERS:.h=.cc)
 SRC := $(shell find . -name '*.cpp') $(shell find . -name '*.c') $(PROTOSRC:.proto=.grpc.pb.cc) $(PROTOSRC:.proto=.pb.cc)
-EXCLUDE_SRC := main.cpp
+EXCLUDE_SRC := ./main.cpp
 FSRC := $(filter-out $(EXCLUDE_SRC), $(SRC))
 OBJ := $(FSRC:%=$(BUILDDIR)/%.o)
 
@@ -22,11 +22,17 @@ DEBFOLDER := $(OUTNAME)_$(DEBVERSION)
 .PHONY: clean debug release package debug_static debug_shared release_static release_shared
 .PRECIOUS: $(PROTOGEN) $(PROTOHEADERS)
 
-all: release debug
+all: release debug sample
 release: release_static release_shared
 debug: debug_static debug_shared
 
-debug_static: FLAGS += -g -O0
+sample: main.cpp debug_static
+	@echo Generating $@
+	$(CXX) $(FLAGS) $(CXXFLAGS) -fsanitize=address -fno-omit-frame-pointer -g -o $@ main.cpp -L./debug/static/ -lgrpcbackend $(LINKFLAGS) -lasan
+	@echo Build done
+
+debug_static: FLAGS += -g -O0 -fsanitize=address -fno-omit-frame-pointer
+debug_static: LINKFLAGS += -lasan
 debug_static:
 	$(eval BUILDDIR=debug/static)
 	$(eval export FLAGS)
@@ -39,7 +45,8 @@ release_static:
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
 	@strip --strip-unneeded $(BUILDDIR)/$(OUTNAME).a
-debug_shared: FLAGS += -g -O0 -fPIC
+debug_shared: FLAGS += -g -O0 -fPIC -fsanitize=address -fno-omit-frame-pointer
+debug_shared: LINKFLAGS += -lasan
 debug_shared:
 	$(eval BUILDDIR=debug/shared)
 	$(eval export FLAGS)
