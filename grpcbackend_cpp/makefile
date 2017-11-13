@@ -22,14 +22,9 @@ DEBFOLDER := $(OUTNAME)_$(DEBVERSION)
 .PHONY: clean debug release package debug_static debug_shared release_static release_shared
 .PRECIOUS: $(PROTOGEN) $(PROTOHEADERS)
 
-all: release debug sample
+all: release debug
 release: release_static release_shared
 debug: debug_static debug_shared
-
-sample: main.cpp debug_static
-	@echo Generating $@
-	$(CXX) $(FLAGS) $(CXXFLAGS) -fsanitize=address -fno-omit-frame-pointer -g -o $@ main.cpp -L./debug/static/ -lgrpcbackend $(LINKFLAGS) -lasan
-	@echo Build done
 
 debug_static: FLAGS += -g -O0 -fsanitize=address -fno-omit-frame-pointer
 debug_static: LINKFLAGS += -lasan

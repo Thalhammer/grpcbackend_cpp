@@ -14,6 +14,7 @@ namespace thalhammer {
 
 		server::~server()
 		{
+			this->shutdown_server();
 		}
 
 		void server::start_server()
@@ -33,13 +34,14 @@ namespace thalhammer {
 
 		void server::shutdown_server()
 		{
-			exit = true;
-			mserver->Shutdown(std::chrono::system_clock::now() + std::chrono::seconds(10));
-			for (auto& cq : cqs) {
-				if (cq.th.joinable())
-					cq.th.join();
-				if (cq.cq)
-					cq.cq->Shutdown();
+			if(!exit.exchange(true)) {
+				mserver->Shutdown(std::chrono::system_clock::now() + std::chrono::seconds(10));
+				for (auto& cq : cqs) {
+					if (cq.th.joinable())
+						cq.th.join();
+					if (cq.cq)
+						cq.cq->Shutdown();
+				}
 			}
 		}
 	}
