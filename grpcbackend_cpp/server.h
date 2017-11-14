@@ -13,7 +13,7 @@ namespace thalhammer {
 	namespace grpcbackend {
 		class server
 		{
-			thalhammer::logger logger;
+			std::shared_ptr<logger> log;
 			http::router router;
 			websocket::hub hub;
 			handler http_service;
@@ -29,6 +29,8 @@ namespace thalhammer {
 			std::unique_ptr<::grpc::Server> mserver;
 		public:
 			server(std::ostream& logstream = std::cout);
+			server(logger& l);
+			server(std::shared_ptr<logger> l);
 			~server();
 
 			void start_server();
@@ -36,7 +38,7 @@ namespace thalhammer {
 
 			::grpc::ServerBuilder& get_builder() { return builder; }
 
-			thalhammer::logger& get_logger() { return logger; }
+			thalhammer::logger& get_logger() { return *log; }
 			http::router& get_router() { return router; }
 			websocket::hub& get_wshub() { return hub; }
 			handler& get_handler() { return http_service; }

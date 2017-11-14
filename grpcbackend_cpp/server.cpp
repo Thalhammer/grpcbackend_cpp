@@ -2,8 +2,17 @@
 
 namespace thalhammer {
 	namespace grpcbackend {
+		
 		server::server(std::ostream & logstream)
-			: logger(logstream), http_service(router, hub), exit(false)
+			: server(std::make_shared<logger>(logstream))
+		{}
+
+		server::server(logger& l)
+			: server(std::shared_ptr<logger>(&l, [](logger*){}))
+		{}
+
+		server::server(std::shared_ptr<logger> l)
+			: log(l), http_service(router, hub), exit(false)
 		{
 			builder.RegisterService(&http_service);
 			for (size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
