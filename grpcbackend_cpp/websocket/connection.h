@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <string>
 #include "../uri.h"
+#include <ttl/string_util.h>
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -43,13 +44,15 @@ namespace thalhammer {
 				}
 
 				bool has_header(const std::string& key) const {
-					return get_headers().count(key) != 0;
+					return get_headers().count(string::to_lower_copy(key)) != 0;
 				}
 
 				const std::string& get_header(const std::string& key) const {
 					static const std::string empty = "";
-					if (has_header(key))
-						return get_headers().find(key)->second;
+					auto k = string::to_lower_copy(key);
+					auto& headers = get_headers();
+					if (headers.count(k) != 0)
+						return headers.find(k)->second;
 					else return empty;
 				}
 

@@ -163,7 +163,7 @@ namespace thalhammer {
 						that->req.CopyFrom(msg->request());
 						for (int i = 0; i < that->req.headers_size(); i++) {
 							auto& hdr = that->req.headers()[i];
-							that->req_headers.insert({ hdr.key(), hdr.value() });
+							that->req_headers.insert({ string::to_lower_copy(hdr.key()), hdr.value() });
 						}
 						that->on_connect(std::shared_ptr<const ::thalhammer::http::WebSocketRequest>(msg, &msg->request()));
 					}));
@@ -236,7 +236,8 @@ namespace thalhammer {
 			virtual const std::multimap<std::string, std::string>& get_headers() const override { return req_headers; }
 
 			// Only valid during on_connect
-			virtual void set_header(const std::string& key, const std::string& value, bool replace = false) override {
+			virtual void set_header(const std::string& pkey, const std::string& value, bool replace = false) override {
+				auto key = string::to_lower_copy(pkey);
 				if (replace) {
 					resp_headers.erase(key);
 				}
@@ -298,7 +299,7 @@ namespace thalhammer {
 			}
 			for (int i = 0; i < _initial_req.request().headers_size(); i++) {
 				auto& hdr = _initial_req.request().headers()[i];
-				_req_headers.insert({ hdr.key(), hdr.value() });
+				_req_headers.insert({ string::to_lower_copy(hdr.key()), hdr.value() });
 			}
 		}
 
@@ -319,8 +320,9 @@ namespace thalhammer {
 				_initial_resp.mutable_response()->set_status_message(message);
 		}
 
-		void handler_interface::set_header(const std::string & key, const std::string & value, bool replace)
+		void handler_interface::set_header(const std::string & pkey, const std::string & value, bool replace)
 		{
+			auto key = string::to_lower_copy(pkey);
 			if (replace) {
 				for (int i = 0; i < _initial_resp.response().headers_size(); i++)
 				{
