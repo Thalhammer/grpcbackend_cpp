@@ -66,19 +66,14 @@ namespace thalhammer {
 			}
 		};
 
-		class handler_iostream : public std::iostream, public handler_streambuf {
-		public:
-			handler_iostream(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
-				: std::iostream(this), handler_streambuf(stream)
-			{}
-		};
-
 		class handler_interface : public thalhammer::grpcbackend::http::request, public thalhammer::grpcbackend::http::response {
 			::thalhammer::http::HandleRequest _initial_req;
 			std::multimap<std::string, std::string> _req_headers;
 			::thalhammer::http::HandleResponse _initial_resp;
 			bool _initial_sent;
-			handler_iostream _stream;
+			handler_streambuf _streambuf;
+			std::istream _istream;
+			std::ostream _ostream;
 		public:
 			handler_interface(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream);
 
@@ -94,7 +89,7 @@ namespace thalhammer {
 			virtual const std::string & get_resource() const override { return _initial_req.request().resource(); }
 			virtual const std::string & get_protocol() const override { return _initial_req.request().protocol(); }
 			virtual const std::multimap<std::string, std::string>& get_headers() const override { return _req_headers; }
-			virtual std::istream & get_istream() override { return _stream; }
+			virtual std::istream & get_istream() override { return _istream; }
 
 			// Geerbt über response
 			virtual void set_status(int code, const std::string & message = "") override;
@@ -291,7 +286,7 @@ namespace thalhammer {
 		}
 
 		handler_interface::handler_interface(::grpc::ServerReaderWriter<::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
-			: _initial_sent(false), _stream(stream)
+			: _initial_sent(false), _streambuf(stream), _istream(&_streambuf), _ostream(&_streambuf)
 		{
 			this->set_status(200);
 			if (!stream->Read(&_initial_req)) {
@@ -307,7 +302,7 @@ namespace thalhammer {
 		{
 			if (!_initial_sent) {
 				_initial_sent = true;
-				if (!_stream.get_stream()->Write(_initial_resp)) {
+				if (!_streambuf.get_stream()->Write(_initial_resp)) {
 					throw std::runtime_error("Failed to send headers");
 				}
 			}
@@ -343,7 +338,7 @@ namespace thalhammer {
 		{
 			// Send initial header response
 			send_headers();
-			return _stream;
+			return _ostream;
 		}
 	}
 }
