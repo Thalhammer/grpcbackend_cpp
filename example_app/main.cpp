@@ -2,7 +2,7 @@
 
 using namespace thalhammer::grpcbackend;
 
-int main(int argc, const char** argv) {
+int main(int argc, const char** argv) try {
 	std::cout.sync_with_stdio(true);
 	server mserver;
 
@@ -46,6 +46,7 @@ int main(int argc, const char** argv) {
 		.add_group("default", std::make_shared<wshandler>(mserver));
 
 	mserver.get_builder().AddListeningPort("0.0.0.0:50051", grpc::InsecureServerCredentials());
+
 	mserver.start_server();
 
 	std::string line;
@@ -57,4 +58,8 @@ int main(int argc, const char** argv) {
 	mserver.shutdown_server();
 
 	return 0;
+}
+catch (const std::exception& e) {
+	std::cerr << "Fatal error:" << e.what() << std::endl;
+	return -1;
 }

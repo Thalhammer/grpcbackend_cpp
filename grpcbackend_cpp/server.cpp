@@ -24,10 +24,14 @@ namespace thalhammer {
 		server::~server()
 		{
 			this->shutdown_server();
+
 		}
 
 		void server::start_server()
 		{
+			if (exit)
+				throw std::logic_error("start_server called after shutdown_server");
+
 			mserver = builder.BuildAndStart();
 
 			if (!mserver) {
@@ -44,13 +48,15 @@ namespace thalhammer {
 		void server::shutdown_server()
 		{
 			if(!exit.exchange(true)) {
-				mserver->Shutdown(std::chrono::system_clock::now() + std::chrono::seconds(10));
+				if(mserver)
+					mserver->Shutdown(std::chrono::system_clock::now() + std::chrono::seconds(10));
 				for (auto& cq : cqs) {
 					if (cq.th.joinable())
 						cq.th.join();
 					if (cq.cq)
 						cq.cq->Shutdown();
 				}
+				cqs.clear();
 			}
 		}
 	}
