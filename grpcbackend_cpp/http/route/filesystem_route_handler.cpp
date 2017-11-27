@@ -3,13 +3,10 @@
 #include "../notfound_exception.h"
 #include <vector>
 #include <ttl/string_util.h>
-#include <boost/filesystem.hpp>
-#include <fstream>
 #include <date/date.h>
 #include <iomanip>
 
 using namespace std::string_literals;
-namespace fs = boost::filesystem;
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -51,26 +48,26 @@ namespace thalhammer {
 					if (!params->has_param("fs_path")) {
 						throw std::logic_error("Missing fs_path param");
 					}
-
-					auto fs_path = fs::path(path + params->get_param("fs_path"));
-					if (fs::exists(fs_path)) {
-						if (fs::is_regular_file(fs_path)) {
-							auto lmodified = last_modified(fs::last_write_time(fs_path));
+					
+					if (fs->exists(path + params->get_param("fs_path"))) {
+						auto p = fs->get_file(path + params->get_param("fs_path"));
+						if (p.is_file()) {
+							auto lmodified = last_modified(p.lmodified);
 							if (lmodified == req.get_header("If-Modified-Since")) {
 								resp.set_status(304, "Not modified");
 								resp.set_header("Last-Modified", lmodified);
 							}
 							else {
-								std::ifstream file(fs_path.native(), std::ios::binary | std::ios::ate);
-								if (file.good()) {
-									std::streamsize size = file.tellg();
-									file.seekg(0, std::ios::beg);
+								auto file = fs->open_file(p.name);
+								if (file->good()) {
+									std::streamsize size = file->tellg();
+									file->seekg(0, std::ios::beg);
 									resp.set_status(200, "OK");
 									resp.set_header("Content-Length", std::to_string(size));
 									resp.set_header("Last-Modified", lmodified);
 									auto& stream = resp.get_ostream();
 
-									stream << file.rdbuf();
+									stream << file->rdbuf();
 									stream.rdbuf()->pubsync();
 								}
 								else {
@@ -78,7 +75,7 @@ namespace thalhammer {
 								}
 							}
 						}
-						else if (allow_listing && fs::is_directory(fs_path)) {
+						else if (allow_listing && p.is_dir()) {
 							resp.set_status(200, "OK");
 							auto& stream = resp.get_ostream();
 							stream << "<!DOCTYPE html>";
@@ -86,28 +83,28 @@ namespace thalhammer {
 							stream << "<h1>Index of " << req.get_resource() << "</h1>";
 							stream << "<table><tr><th></th><th>Name</th><th>Last modified</th><th>Size</th></tr>";
 							stream << "<tr><td colspan=4><hr></td><tr>";
-							for (auto& entry : fs::directory_iterator(fs_path)) {
-								if (entry.path().filename() != ".." && entry.path().filename() != "." && fs::exists(entry.path())) {
-									auto lmodified = std::chrono::system_clock::from_time_t(fs::last_write_time(entry.path()));
-									auto days = date::floor<date::days>(lmodified);
-									auto date = date::year_month_day{ days };
-									auto time = date::make_time(lmodified - days);
-									bool is_dir = fs::is_directory(entry.path());
-									std::string fname = entry.path().filename().string();
-									std::string link = "./" + fname;
-									stream
-										<< "<tr><td>"
-										<< (is_dir ? "[DIR ]" : "[FILE]")
-										<< "</td><td><a href=\""
-										<< link
-										<< "\">"
-										<< fname
-										<< "</a></td><td>"
-										<< date << " " << std::setw(2) << std::setfill('0') << time.hours().count() << ":" << std::setw(2) << std::setfill('0') << time.minutes().count()
-										<< "</td><td>"
-										<< format_size(is_dir ? 0 : fs::file_size(entry.path()))
-										<< "</td></tr>";
-								}
+							for (auto& entry : fs->get_files(p.name)) {
+								if(entry.type == fs_filetype::unknown)
+									continue;
+
+								auto lmodified = std::chrono::system_clock::from_time_t(entry.lmodified);
+								auto days = date::floor<date::days>(lmodified);
+								auto date = date::year_month_day{ days };
+								auto time = date::make_time(lmodified - days);
+								std::string fname = entry.file_name;
+								std::string link = "./" + fname;
+								stream
+									<< "<tr><td>"
+									<< (entry.is_dir() ? "[DIR ]" : "[FILE]")
+									<< "</td><td><a href=\""
+									<< link
+									<< "\">"
+									<< fname
+									<< "</a></td><td>"
+									<< date << " " << std::setw(2) << std::setfill('0') << time.hours().count() << ":" << std::setw(2) << std::setfill('0') << time.minutes().count()
+									<< "</td><td>"
+									<< format_size(entry.is_dir() ? 0 : entry.size)
+									<< "</td></tr>";
 							}
 							stream << "</table></body></html>";
 						}

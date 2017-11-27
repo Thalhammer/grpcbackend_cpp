@@ -164,7 +164,11 @@ namespace thalhammer {
 
 			router& router::serve_dir(const std::string& uri, const std::string& dir, bool allow_listing)
 			{
-				return this->route(std::make_shared<http::route::filesystem_route_handler>(dir, allow_listing, uri + "{fs_path:.*}"));
+				return this->serve_dir(uri, dir, allow_listing, std::make_shared<osfilesystem>());
+			}
+
+			router& router::serve_dir(const std::string& uri, const std::string& dir, bool allow_listing, std::shared_ptr<ifilesystem> fs) {
+				return this->route(std::make_shared<http::route::filesystem_route_handler>(dir, allow_listing, uri + "{fs_path:.*}", fs));
 			}
 
 			router& router::log_requests(thalhammer::logger& stream, pos p)
