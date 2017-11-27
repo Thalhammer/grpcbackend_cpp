@@ -9,6 +9,10 @@ namespace thalhammer {
                     if (!_mime.load_file(filename))
                         throw std::runtime_error("Failed to load mime file");
                 }
+				mime_type::mime_type(std::istream& stream) {
+					if (!_mime.load_stream(stream))
+						throw std::runtime_error("Failed to load mime stream");
+				}
                 // Geerbt über middleware
                 void mime_type::handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) {
                     auto ext = req.get_parsed_uri().get_extension();

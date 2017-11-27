@@ -181,6 +181,11 @@ namespace thalhammer {
 				return this->use(std::make_shared<http::mw::mime_type>(mimefile), p);
 			}
 
+			router& router::mime_detector(std::istream& stream, pos p)
+			{
+				return this->use(std::make_shared<http::mw::mime_type>(stream), p);
+			}
+
 			void router::do_routing(request & req, response & resp, std::shared_ptr<const routing_info> info)
 			{
 				auto& method = req.get_method();
