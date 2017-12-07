@@ -1,5 +1,7 @@
 #pragma once
 #include "../attribute.h"
+#include <map>
+#include <string>
 
 namespace thalhammer {
 	namespace grpcbackend {
