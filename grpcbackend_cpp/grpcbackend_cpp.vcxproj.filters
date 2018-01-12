@@ -114,6 +114,12 @@
     <ClInclude Include="server.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="http\notfound_exception.h">
+      <Filter>Headerdateien\http</Filter>
+    </ClInclude>
+    <ClInclude Include="filesystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="handler.cpp">
@@ -147,6 +153,9 @@
       <Filter>Quelldateien\http\route</Filter>
     </ClCompile>
     <ClCompile Include="server.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="filesystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

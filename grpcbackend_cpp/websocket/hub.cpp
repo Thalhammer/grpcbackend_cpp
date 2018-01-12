@@ -21,7 +21,7 @@ namespace thalhammer {
 					}
 				}
 				if(_default_handler)
-					_default_handler->on_disconnect(con);
+					_default_handler->on_message(con, bin, msg);
 			}
 
 			void hub::on_disconnect(connection_ptr con)

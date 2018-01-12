@@ -155,6 +155,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="attribute.h" />
+    <ClInclude Include="filesystem.h" />
     <ClInclude Include="handler.grpc.pb.h" />
     <ClInclude Include="handler.h" />
     <ClInclude Include="handler.pb.h" />
@@ -165,6 +166,7 @@
     <ClInclude Include="http\mw\request_forward.h" />
     <ClInclude Include="http\mw\response_forward.h" />
     <ClInclude Include="http\mw\rewrite.h" />
+    <ClInclude Include="http\notfound_exception.h" />
     <ClInclude Include="http\request.h" />
     <ClInclude Include="http\response.h" />
     <ClInclude Include="http\router.h" />
@@ -180,6 +182,7 @@
     <ClInclude Include="websocket\hub.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="filesystem.cpp" />
     <ClCompile Include="handler.cpp" />
     <ClCompile Include="handler.grpc.pb.cc" />
     <ClCompile Include="handler.pb.cc" />
