@@ -4,6 +4,7 @@
 #include <string>
 #include <mutex>
 #include <set>
+#include <ttl/logger.h>
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -24,7 +25,13 @@ namespace thalhammer {
 				};
 
 				std::shared_ptr<con_handler> _default_handler;
+				thalhammer::logger& _logger;
 			public:
+				hub(thalhammer::logger& logger);
+				~hub();
+
+				hub& close_all();
+
 				void on_connect(connection_ptr con) override;
 				void on_message(connection_ptr con, bool bin, const std::string& msg) override;
 				void on_disconnect(connection_ptr con) override;
@@ -42,6 +49,8 @@ namespace thalhammer {
 				hub& broadcast(const std::string& gname, bool bin, const std::string& msg);
 				/* Broadcast a message to all connections in the same group as con. */
 				hub& broadcast(const connection_ptr& con, bool bin, const std::string& msg);
+				/* Close connections of a specific group */
+				hub& close_group(const std::string& gname);
 			};
 		}
 	}

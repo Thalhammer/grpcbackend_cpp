@@ -1,5 +1,6 @@
 ﻿#include "handler.h"
 #include <queue>
+#include <ttl/logger.h>
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -104,6 +105,7 @@ namespace thalhammer {
 			::grpc::ServerContext ctx;
 			::grpc::ServerAsyncReaderWriter< ::thalhammer::http::HandleWebSocketResponse, ::thalhammer::http::HandleWebSocketRequest> stream;
 			::grpc::ServerCompletionQueue* server_cq;
+			std::atomic<bool> done;
 
 			::thalhammer::http::WebSocketRequest req;
 			std::multimap<std::string, std::string> req_headers;
@@ -115,10 +117,19 @@ namespace thalhammer {
 			void send_cb(bool ok) {
 				auto that = this->shared_from_this();
 				std::unique_lock<std::mutex> lck(this->response_queue_lck);
+				bool done = response_queue.front()->message().type() == thalhammer::http::WebSocketMessage::CLOSE;
+				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") << "write ok:" << (ok ?"true":"false");
 				response_queue.pop();
-				if(!response_queue.empty()) {
+				if(!this->done && !response_queue.empty()) {
 					stream.Write(*response_queue.front(), new cont_function_t([that](bool ok){
 						that->send_cb(ok);
+					}));
+				}
+				if(done) {
+					this->con_handler.on_disconnect(that);
+					if(this->done.exchange(true)) return;
+					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
+						that->service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"finish (server) called";
 					}));
 				}
 			}
@@ -135,11 +146,13 @@ namespace thalhammer {
 			}
 		public:
 			ws_connection(::grpc::ServerCompletionQueue* cq, handler& service, websocket::con_handler& con_handler)
-				: service(service), con_handler(con_handler), stream(&ctx), server_cq(cq)
+				: service(service), con_handler(con_handler), stream(&ctx), server_cq(cq), done(false)
 			{
+				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"con create 0x" << std::hex << this;
 			}
 
 			virtual ~ws_connection() {
+				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") << "con destroy 0x" << std::hex << this;
 			}
 			
 			void start() {
@@ -187,10 +200,12 @@ namespace thalhammer {
 			void on_message(std::shared_ptr<const ::thalhammer::http::WebSocketMessage> msg) {
 				if (msg->type() == ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_CLOSE) {
 					this->con_handler.on_disconnect(this->shared_from_this());
+					if(this->done.exchange(true)) return;
 					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
+						that->service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"finish (client) called";
 					}));
 				}
-				else {
+				else if(!this->done){
 					this->con_handler.on_message(this->shared_from_this(), msg->type() == ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_BINARY, msg->content());
 					auto that = this->shared_from_this();
 					auto req = std::make_shared<::thalhammer::http::HandleWebSocketRequest>();
@@ -203,6 +218,7 @@ namespace thalhammer {
 			}
 
 			virtual void send_message(bool bin, const std::string& buf) override {
+				if(this->done) return;
 				auto msg = std::make_shared<::thalhammer::http::HandleWebSocketResponse>();
 				auto ptr = msg->mutable_message();
 				ptr->set_content(buf);
@@ -211,6 +227,7 @@ namespace thalhammer {
 			}
 
 			virtual void close() override {
+				if(this->done) return;
 				auto msg = std::make_shared<::thalhammer::http::HandleWebSocketResponse>();
 				msg->mutable_message()->set_type(::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_CLOSE);
 				this->queue_response(msg);
@@ -240,8 +257,8 @@ namespace thalhammer {
 			}
 		};
 
-		handler::handler(http::router & route, websocket::con_handler& ws_handler)
-			:_route(route), _ws_handler(ws_handler)
+		handler::handler(http::router & route, websocket::con_handler& ws_handler, thalhammer::logger& logger)
+			:_route(route), _ws_handler(ws_handler), _logger(logger)
 		{
 		}
 
@@ -249,16 +266,16 @@ namespace thalhammer {
 		{
 		}
 
-		void handler::async_task(::grpc::ServerCompletionQueue* cq, std::atomic<bool>& exit)
+		void handler::async_task(::grpc::ServerCompletionQueue* cq)
 		{
 			{
 				auto con = std::make_shared<ws_connection>(cq, *this, _ws_handler);
 				con->start();
 			}
-			while (!exit) {
+			while (true) {
 				void* tag;
 				bool ok = false;
-				cq->Next(&tag, &ok);
+				if(!cq->Next(&tag, &ok)) break;
 				cont_function_t* cont_fn = (cont_function_t*)tag;
 				if (cont_fn != nullptr) {
 					try {

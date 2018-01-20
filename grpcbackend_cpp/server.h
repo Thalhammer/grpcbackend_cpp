@@ -14,9 +14,9 @@ namespace thalhammer {
 		class server
 		{
 			std::shared_ptr<logger> log;
-			http::router router;
-			websocket::hub hub;
-			handler http_service;
+			std::unique_ptr<http::router> router;
+			std::unique_ptr<websocket::hub> hub;
+			std::unique_ptr<handler> http_service;
 
 			struct cqcontext {
 				std::thread th;
@@ -34,14 +34,14 @@ namespace thalhammer {
 			~server();
 
 			void start_server();
-			void shutdown_server();
+			void shutdown_server(std::chrono::milliseconds max_wait = std::chrono::milliseconds(10000));
 
 			::grpc::ServerBuilder& get_builder() { return builder; }
 
 			thalhammer::logger& get_logger() { return *log; }
-			http::router& get_router() { return router; }
-			websocket::hub& get_wshub() { return hub; }
-			handler& get_handler() { return http_service; }
+			http::router& get_router() { return *router; }
+			websocket::hub& get_wshub() { return *hub; }
+			handler& get_handler() { return *http_service; }
 		};
 	}
 }

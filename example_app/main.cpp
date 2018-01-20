@@ -27,7 +27,15 @@ int main(int argc, const char** argv) try {
 		defaulthandler(server& s) : _s(s) {}
 		virtual void on_connect(websocket::connection_ptr con) override
 		{
+			std::thread([con](){
+				for(int i = 10; i> 0; i--) {
+					std::this_thread::sleep_for(std::chrono::seconds(1));
+					con->send_message(false, std::to_string(i));
+				}
+				con->close();
+			}).detach();
 			_s.get_wshub().set_connection_group(con, "default");
+			_s.get_logger()(thalhammer::loglevel::INFO, "ws") << "Opened connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
 		virtual void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
 		}
@@ -35,7 +43,7 @@ int main(int argc, const char** argv) try {
 		}
 	};
 
-	mserver.get_logger().set_loglevel(thalhammer::loglevel::TRACE);
+	mserver.get_logger().set_loglevel(thalhammer::loglevel::INFO);
 	mserver.get_router()
 		.set_debug_mode(true)
 		.log_requests(mserver.get_logger())

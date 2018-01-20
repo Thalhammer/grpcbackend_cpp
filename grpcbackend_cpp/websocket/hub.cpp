@@ -4,14 +4,31 @@ namespace thalhammer {
 	namespace grpcbackend {
 		namespace websocket {
 
+			hub::hub(thalhammer::logger& logger)
+				: _logger(logger)
+			{}
+			hub::~hub() {
+			}
+
+			hub& hub::close_all()
+			{
+				for(auto& e: _groups) {
+					std::unique_lock<std::mutex> lck(e.second->cons_lck);
+					e.second->cons.clear();
+				}
+				return *this;
+			}
+
 			void hub::on_connect(connection_ptr con)
 			{
+				_logger(loglevel::TRACE, "wshub") << "on_connect: 0x" << std::hex << con.get();
 				if(_default_handler)
 					_default_handler->on_connect(con);
 			}
 
 			void hub::on_message(connection_ptr con, bool bin, const std::string& msg)
 			{
+				_logger(loglevel::TRACE, "wshub") << "on_message: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
 				if(attr) {
 					auto group = attr->group.lock();
@@ -26,6 +43,7 @@ namespace thalhammer {
 
 			void hub::on_disconnect(connection_ptr con)
 			{
+				_logger(loglevel::TRACE, "wshub") << "on_disconnect: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
 				if(attr) {
 					auto group = attr->group.lock();
@@ -118,6 +136,21 @@ namespace thalhammer {
 						}
 					}
 				}
+				return *this;
+			}
+
+			hub& hub::close_group(const std::string& gname)
+			{
+				std::set<connection_ptr> cons;
+				if(_groups.count(gname)!=0) {
+					auto g = _groups[gname];
+					if(g) {
+						std::unique_lock<std::mutex> lck(g->cons_lck);
+						cons = g->cons;
+					}
+				}
+				for(auto& e : cons)
+					e->close();
 				return *this;
 			}
 		}
