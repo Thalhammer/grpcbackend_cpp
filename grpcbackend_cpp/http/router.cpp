@@ -7,7 +7,7 @@
 #include "route/filesystem_route_handler.h"
 #include "mw/logger.h"
 #include "mw/mime_type.h"
-#include "notfound_exception.h"
+#include "http_exception.h"
 
 using namespace std::string_literals;
 
@@ -238,10 +238,17 @@ namespace thalhammer {
 				try {
 					handler->handle_request(req, resp);
 				}
-				catch (const notfound_exception& ex) {
-					if(info->notfound_handler)
-						info->notfound_handler(req, resp);
-					else resp.set_status(404);
+				catch (const http_exception& ex) {
+					if(ex.get_code() == 404) {
+						if(info->notfound_handler)
+							info->notfound_handler(req, resp);
+						else resp.set_status(404);
+					} else if(ex.get_code() == 500) {
+						if(info->error_handler) info->error_handler(req, resp, ex.get_message(), std::current_exception());
+						else resp.set_status(500, ex.get_message());
+					} else {
+						resp.set_status(ex.get_code(), ex.get_message());
+					}
 				}
 				catch (...) {
 					if (info->debug_mode) {

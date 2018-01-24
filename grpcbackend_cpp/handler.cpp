@@ -4,6 +4,7 @@
 
 namespace thalhammer {
 	namespace grpcbackend {
+		namespace {
 		class handler_streambuf : public std::streambuf {
 			::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* _stream;
 			::thalhammer::http::HandleRequest req;
@@ -97,6 +98,7 @@ namespace thalhammer {
 			virtual void set_header(const std::string & key, const std::string & value, bool replace = false) override;
 			virtual std::ostream & get_ostream() override;
 		};
+		}
 
 		typedef std::function<void(bool)> cont_function_t;
 		class ws_connection : public websocket::connection, public std::enable_shared_from_this<ws_connection> {

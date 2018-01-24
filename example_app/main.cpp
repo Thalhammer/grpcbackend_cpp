@@ -43,7 +43,7 @@ int main(int argc, const char** argv) try {
 		}
 	};
 
-	mserver.get_logger().set_loglevel(thalhammer::loglevel::INFO);
+	mserver.get_logger().set_loglevel(thalhammer::loglevel::TRACE);
 	mserver.get_router()
 		.set_debug_mode(true)
 		.log_requests(mserver.get_logger())

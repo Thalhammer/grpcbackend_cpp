@@ -1,6 +1,6 @@
 #include "filesystem_route_handler.h"
 #include "../route_params.h"
-#include "../notfound_exception.h"
+#include "../http_exception.h"
 #include <vector>
 #include <ttl/string_util.h>
 #include <date/date.h>

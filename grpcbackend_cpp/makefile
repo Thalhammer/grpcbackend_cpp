@@ -26,7 +26,7 @@ all: release debug
 release: release_static release_shared
 debug: debug_static debug_shared
 
-debug_static: FLAGS += -g -O0 -fsanitize=address -fno-omit-frame-pointer
+debug_static: FLAGS += -g -Og -fsanitize=address -fno-omit-frame-pointer
 debug_static: LINKFLAGS += -lasan
 debug_static:
 	$(eval BUILDDIR=debug/static)
@@ -40,7 +40,7 @@ release_static:
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
 	@strip --strip-unneeded $(BUILDDIR)/$(OUTNAME).a
-debug_shared: FLAGS += -g -O0 -fPIC -fsanitize=address -fno-omit-frame-pointer
+debug_shared: FLAGS += -g -Og -fPIC -fsanitize=address -fno-omit-frame-pointer
 debug_shared: LINKFLAGS += -lasan
 debug_shared:
 	$(eval BUILDDIR=debug/shared)
