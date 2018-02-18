@@ -36,7 +36,11 @@ Handler::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
 }
 
 ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* Handler::Stub::AsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>::Create(channel_.get(), cq, rpcmethod_Handle_, context, tag);
+  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>::Create(channel_.get(), cq, rpcmethod_Handle_, context, true, tag);
+}
+
+::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* Handler::Stub::PrepareAsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>::Create(channel_.get(), cq, rpcmethod_Handle_, context, false, nullptr);
 }
 
 ::grpc::ClientReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* Handler::Stub::HandleWebSocketRaw(::grpc::ClientContext* context) {
@@ -44,7 +48,11 @@ Handler::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel)
 }
 
 ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* Handler::Stub::AsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
-  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>::Create(channel_.get(), cq, rpcmethod_HandleWebSocket_, context, tag);
+  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>::Create(channel_.get(), cq, rpcmethod_HandleWebSocket_, context, true, tag);
+}
+
+::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* Handler::Stub::PrepareAsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+  return ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>::Create(channel_.get(), cq, rpcmethod_HandleWebSocket_, context, false, nullptr);
 }
 
 Handler::Service::Service() {

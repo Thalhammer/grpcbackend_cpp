@@ -114,11 +114,11 @@
     <ClInclude Include="server.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="http\notfound_exception.h">
-      <Filter>Headerdateien\http</Filter>
-    </ClInclude>
     <ClInclude Include="filesystem.h">
       <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="http\http_exception.h">
+      <Filter>Headerdateien\http</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

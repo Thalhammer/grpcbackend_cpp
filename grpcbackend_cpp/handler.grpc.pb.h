@@ -41,17 +41,25 @@ class Handler final {
     std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>> AsyncHandle(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>>(AsyncHandleRaw(context, cq, tag));
     }
+    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>> PrepareAsyncHandle(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>>(PrepareAsyncHandleRaw(context, cq));
+    }
     std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> HandleWebSocket(::grpc::ClientContext* context) {
       return std::unique_ptr< ::grpc::ClientReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(HandleWebSocketRaw(context));
     }
     std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> AsyncHandleWebSocket(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(AsyncHandleWebSocketRaw(context, cq, tag));
     }
+    std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> PrepareAsyncHandleWebSocket(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(PrepareAsyncHandleWebSocketRaw(context, cq));
+    }
   private:
     virtual ::grpc::ClientReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* HandleRaw(::grpc::ClientContext* context) = 0;
     virtual ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* AsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
+    virtual ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* PrepareAsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* HandleWebSocketRaw(::grpc::ClientContext* context) = 0;
     virtual ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* AsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) = 0;
+    virtual ::grpc::ClientAsyncReaderWriterInterface< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* PrepareAsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
@@ -62,19 +70,27 @@ class Handler final {
     std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>> AsyncHandle(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>>(AsyncHandleRaw(context, cq, tag));
     }
+    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>> PrepareAsyncHandle(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>>(PrepareAsyncHandleRaw(context, cq));
+    }
     std::unique_ptr< ::grpc::ClientReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> HandleWebSocket(::grpc::ClientContext* context) {
       return std::unique_ptr< ::grpc::ClientReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(HandleWebSocketRaw(context));
     }
     std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> AsyncHandleWebSocket(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) {
       return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(AsyncHandleWebSocketRaw(context, cq, tag));
     }
+    std::unique_ptr<  ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>> PrepareAsyncHandleWebSocket(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>>(PrepareAsyncHandleWebSocketRaw(context, cq));
+    }
 
    private:
     std::shared_ptr< ::grpc::ChannelInterface> channel_;
     ::grpc::ClientReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* HandleRaw(::grpc::ClientContext* context) override;
     ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* AsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
+    ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleRequest, ::thalhammer::http::HandleResponse>* PrepareAsyncHandleRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* HandleWebSocketRaw(::grpc::ClientContext* context) override;
     ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* AsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq, void* tag) override;
+    ::grpc::ClientAsyncReaderWriter< ::thalhammer::http::HandleWebSocketRequest, ::thalhammer::http::HandleWebSocketResponse>* PrepareAsyncHandleWebSocketRaw(::grpc::ClientContext* context, ::grpc::CompletionQueue* cq) override;
     const ::grpc::RpcMethod rpcmethod_Handle_;
     const ::grpc::RpcMethod rpcmethod_HandleWebSocket_;
   };
