@@ -17,13 +17,14 @@ namespace thalhammer {
 			struct route_entry {
 				std::regex regex;
 				std::vector<std::string> keys;
+				std::vector<middleware_ptr> middleware;
 				route_handler_ptr handler;
 				std::string uri;
 			};
 
 			struct router::routing_info {
 				std::multimap<pos, middleware_ptr> middleware;
-				std::map<std::string, std::vector<route_entry>> routes;
+				std::map<std::string, std::vector<std::shared_ptr<route_entry>>> routes;
 				bool debug_mode;
 				notfound_handler_t notfound_handler;
 				error_handler_t error_handler;
@@ -36,7 +37,7 @@ namespace thalhammer {
 				std::atomic_store(&_routing, info);
 			}
 
-			router& router::route(route_handler_ptr handler)
+			router& router::route(route_handler_ptr handler, std::vector<middleware_ptr> mw)
 			{
 				std::lock_guard<std::mutex> lck(_routing_update_mtx);
 				// Get local pointer
@@ -45,11 +46,12 @@ namespace thalhammer {
 				auto info = std::make_shared<routing_info>(*pinfo);
 				for (auto& method : handler->get_methods()) {
 					for (auto& uri : handler->get_routes()) {
-						route_entry entry;
+						std::shared_ptr<route_entry> entry = std::make_shared<route_entry>();
 						auto parts = parse_route(uri);
-						entry.uri = uri;
-						entry.regex = std::regex(build_route_regex(parts, entry.keys));
-						entry.handler = handler;
+						entry->uri = uri;
+						entry->regex = std::regex(build_route_regex(parts, entry->keys));
+						entry->handler = handler;
+						entry->middleware = mw;
 						// Modify
 						info->routes[method].push_back(entry);
 					}
@@ -200,11 +202,11 @@ namespace thalhammer {
 					return;
 				}
 				auto& entries = map.at(method);
-				route_handler_ptr handler;
+				std::shared_ptr<const route_entry> entry;
 				std::smatch matches;
 				for (auto& e : entries) {
-					if (std::regex_match(uri, matches, e.regex)) {
-						handler = e.handler;
+					if (std::regex_match(uri, matches, e->regex)) {
+						entry = e;
 						std::shared_ptr<route_params> params;
 						if (req.has_attribute<route_params>()) params = req.get_attribute<route_params>();
 						else {
@@ -212,7 +214,7 @@ namespace thalhammer {
 							req.set_attribute(params);
 						}
 
-						if (matches.size() != e.keys.size() + 1) {
+						if (matches.size() != e->keys.size() + 1) {
 							if (info->debug_mode)
 								resp.set_header("X-Exception", "Regex size check failed");
 							if(info->error_handler) info->error_handler(req, resp, "Internal error", nullptr);
@@ -220,15 +222,15 @@ namespace thalhammer {
 							return;
 						}
 
-						for (size_t i = 0; i < e.keys.size(); i++) {
-							params->set_param(e.keys[i], matches[i + 1].str());
+						for (size_t i = 0; i < e->keys.size(); i++) {
+							params->set_param(e->keys[i], matches[i + 1].str());
 						}
-						params->set_selected_route(e.uri);
+						params->set_selected_route(e->uri);
 						break;
 					}
 				}
 
-				if (!handler) {
+				if (!entry) {
 					if(info->notfound_handler)
 						info->notfound_handler(req, resp);
 					else resp.set_status(404);
@@ -236,7 +238,26 @@ namespace thalhammer {
 				}
 
 				try {
-					handler->handle_request(req, resp);
+					if (!entry->middleware.empty()) {
+						auto it = entry->middleware.cbegin();
+						auto end = entry->middleware.cend();
+
+						std::function<void(request&, response&)> next = [it, end, &next, entry](request& req, response& resp) mutable -> void {
+							if (it != end) {
+								auto mw = *it;
+								it++;
+								mw->handle_request(req, resp, next);
+							}
+							else {
+								entry->handler->handle_request(req, resp);
+							}
+						};
+
+						next(req, resp);
+					}
+					else {
+						entry->handler->handle_request(req, resp);
+					}
 				}
 				catch (const http_exception& ex) {
 					if(ex.get_code() == 404) {

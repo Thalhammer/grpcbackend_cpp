@@ -1,4 +1,7 @@
 #include "server.h"
+#include "http/router.h"
+#include "websocket/hub.h"
+#include <grpc++/grpc++.h>
 
 using namespace thalhammer::grpcbackend;
 

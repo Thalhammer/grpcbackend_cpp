@@ -1,16 +1,20 @@
 #pragma once
 #include <ttl/logger.h>
 #include <iostream>
-#include "websocket/hub.h"
-#include "handler.h"
-#include <grpc++/server_builder.h>
-#include <grpc++/server.h>
 #include <thread>
-#include <functional>
 #include <atomic>
+#include <vector>
+
+namespace grpc {
+	class Server;
+	class ServerBuilder;
+}
 
 namespace thalhammer {
 	namespace grpcbackend {
+		class handler;
+		namespace http { class router; }
+		namespace websocket { class hub; }
 		class server
 		{
 			std::shared_ptr<logger> log;
@@ -18,25 +22,30 @@ namespace thalhammer {
 			std::unique_ptr<websocket::hub> hub;
 			std::unique_ptr<handler> http_service;
 
-			struct cqcontext {
-				std::thread th;
-				std::unique_ptr<::grpc::ServerCompletionQueue> cq;
-			};
+			struct cqcontext;
 			std::atomic<bool> exit;
 			std::vector<cqcontext> cqs;
-			grpc::ServerBuilder builder;
+			std::unique_ptr<::grpc::ServerBuilder> builder;
 
 			std::unique_ptr<::grpc::Server> mserver;
 		public:
+			struct options {
+				std::shared_ptr<logger> logger;
+				size_t num_worker_threads;
+			};
+
 			server(std::ostream& logstream = std::cout);
 			server(logger& l);
 			server(std::shared_ptr<logger> l);
+			server(options opts);
+			server(const server& other) = delete;
+			server& operator=(const server& other) = delete;
 			~server();
 
 			void start_server();
 			void shutdown_server(std::chrono::milliseconds max_wait = std::chrono::milliseconds(10000));
 
-			::grpc::ServerBuilder& get_builder() { return builder; }
+			::grpc::ServerBuilder& get_builder() { return *builder; }
 
 			thalhammer::logger& get_logger() { return *log; }
 			http::router& get_router() { return *router; }

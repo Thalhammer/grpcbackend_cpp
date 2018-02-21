@@ -1,8 +1,16 @@
 #include "server.h"
+#include "handler.h"
+#include "websocket/hub.h"
+#include <grpc++/server_builder.h>
+#include <grpc++/server.h>
 
 namespace thalhammer {
 	namespace grpcbackend {
-		
+		struct server::cqcontext{
+			std::thread th;
+			std::unique_ptr<::grpc::ServerCompletionQueue> cq;
+		};
+
 		server::server(std::ostream & logstream)
 			: server(std::make_shared<logger>(logstream))
 		{}
@@ -12,14 +20,21 @@ namespace thalhammer {
 		{}
 
 		server::server(std::shared_ptr<logger> l)
-			: log(l), exit(false)
+			: server(options{ l, 0 })
+		{}
+
+		server::server(options opts)
+			: log(opts.logger), exit(false)
 		{
-			hub = std::make_unique<websocket::hub>(*l);
+			if (opts.num_worker_threads == 0)
+				opts.num_worker_threads = std::thread::hardware_concurrency();
+			hub = std::make_unique<websocket::hub>(*log);
 			router = std::make_unique<http::router>();
 			http_service = std::make_unique<handler>(*router, *hub, *log);
-			builder.RegisterService(http_service.get());
-			for (size_t i = 0; i < std::thread::hardware_concurrency(); i++) {
-				auto cq = builder.AddCompletionQueue(false);
+			builder = std::make_unique<::grpc::ServerBuilder>();
+			builder->RegisterService(http_service.get());
+			for (size_t i = 0; i < opts.num_worker_threads; i++) {
+				auto cq = builder->AddCompletionQueue(false);
 				cqs.push_back({ std::thread(), std::move(cq) });
 			}
 		}
@@ -34,7 +49,7 @@ namespace thalhammer {
 			if (exit)
 				throw std::logic_error("start_server called after shutdown_server");
 
-			mserver = builder.BuildAndStart();
+			mserver = builder->BuildAndStart();
 
 			if (!mserver) {
 				throw std::runtime_error("Failed to init server");

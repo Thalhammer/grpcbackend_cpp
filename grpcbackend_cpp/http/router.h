@@ -23,7 +23,7 @@ namespace thalhammer {
 				typedef std::function<void(request&, response&, const std::string&, std::exception_ptr)> error_handler_t;
 
 				router();
-				router& route(route_handler_ptr handler);
+				router& route(route_handler_ptr handler, std::vector<middleware_ptr> middleware = {});
 				router& use(middleware_ptr m, pos p = pos::DEFAULT);
 				router& set_debug_mode(bool b);
 				router& notfound(notfound_handler_t fn);
@@ -34,8 +34,8 @@ namespace thalhammer {
 				// Shortcut methods for default middleware/routehandlers
 				// Add a function handler
 				template<typename T>
-				router& route(const std::string& method, const std::string& uri, T handler) {
-					return route(std::make_shared<route::function_route_handler<T>>(handler, uri, method));
+				router& route(const std::string& method, const std::string& uri, T handler, std::vector<middleware_ptr> middleware = {}) {
+					return route(std::make_shared<route::function_route_handler<T>>(handler, uri, method), middleware);
 				}
 				// Add a rewrite middleware
 				router& rewrite(std::function<std::string(request&, response&)> fn, pos p = pos::DEFAULT);
