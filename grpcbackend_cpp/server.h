@@ -30,7 +30,7 @@ namespace thalhammer {
 			std::unique_ptr<::grpc::Server> mserver;
 		public:
 			struct options {
-				std::shared_ptr<logger> logger;
+				std::shared_ptr<logger> log;
 				size_t num_worker_threads;
 			};
 

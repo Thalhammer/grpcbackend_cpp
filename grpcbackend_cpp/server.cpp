@@ -24,7 +24,7 @@ namespace thalhammer {
 		{}
 
 		server::server(options opts)
-			: log(opts.logger), exit(false)
+			: log(opts.log), exit(false)
 		{
 			if (opts.num_worker_threads == 0)
 				opts.num_worker_threads = std::thread::hardware_concurrency();
