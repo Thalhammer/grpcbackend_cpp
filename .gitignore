@@ -302,6 +302,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Protobuf result files
+grpcbackend_cpp/handler.grpc.pb.h
+grpcbackend_cpp/handler.grpc.pb.cc
+grpcbackend_cpp/handler.pb.h
+grpcbackend_cpp/handler.pb.cc
+
 # Linux files
 *.o
 .deps

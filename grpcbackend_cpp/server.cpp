@@ -3,6 +3,7 @@
 #include "websocket/hub.h"
 #include <grpc++/server_builder.h>
 #include <grpc++/server.h>
+#include <cstdlib>
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -26,13 +27,23 @@ namespace thalhammer {
 		server::server(options opts)
 			: log(opts.log), exit(false)
 		{
-			if (opts.num_worker_threads == 0)
-				opts.num_worker_threads = std::thread::hardware_concurrency();
+			if (opts.num_worker_threads == 0) {
+				auto env = getenv("GRPCBACKEND_NUM_WORKERS");
+				if (env) {
+					get_logger()(loglevel::TRACE, "grpc_server") << "Workercount set by environment";
+					opts.num_worker_threads = std::stoul(env);
+				}
+				else {
+					get_logger()(loglevel::TRACE, "grpc_server") << "Workercount not specified, using number of cpu cores";
+					opts.num_worker_threads = std::thread::hardware_concurrency();
+				}
+			}
 			hub = std::make_unique<websocket::hub>(*log);
 			router = std::make_unique<http::router>();
 			http_service = std::make_unique<handler>(*router, *hub, *log);
 			builder = std::make_unique<::grpc::ServerBuilder>();
 			builder->RegisterService(http_service.get());
+			get_logger()(loglevel::TRACE, "grpc_server") << "Using " << opts.num_worker_threads << " worker threads";
 			for (size_t i = 0; i < opts.num_worker_threads; i++) {
 				auto cq = builder->AddCompletionQueue(false);
 				cqs.push_back({ std::thread(), std::move(cq) });

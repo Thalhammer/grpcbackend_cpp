@@ -161,7 +161,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="handler.proto" />
-    <None Include="mime.types" />
     <None Include="public\index.html">
       <Filter>Ressourcendateien\public</Filter>
     </None>

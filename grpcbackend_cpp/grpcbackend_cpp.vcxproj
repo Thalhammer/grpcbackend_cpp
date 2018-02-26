@@ -197,7 +197,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="handler.proto" />
-    <None Include="mime.types" />
     <None Include="public\index.html" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
