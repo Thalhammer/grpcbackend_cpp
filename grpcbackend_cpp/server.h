@@ -34,10 +34,10 @@ namespace thalhammer {
 				size_t num_worker_threads;
 			};
 
-			server(std::ostream& logstream = std::cout);
-			server(logger& l);
-			server(std::shared_ptr<logger> l);
-			server(options opts);
+			explicit server(std::ostream& logstream = std::cout);
+			explicit server(logger& l);
+			explicit server(std::shared_ptr<logger> l);
+			explicit server(options opts);
 			server(const server& other) = delete;
 			server& operator=(const server& other) = delete;
 			~server();

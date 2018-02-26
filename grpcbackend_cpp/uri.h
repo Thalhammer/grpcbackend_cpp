@@ -11,7 +11,7 @@ namespace thalhammer {
 			std::string _ext;
 			std::unordered_multimap<std::string, std::string> _query;
 		public:
-			uri(const std::string& uri);
+			explicit uri(const std::string& uri);
 
 			// Full path including filename and extension
 			const std::string& get_path() const { return _path; }

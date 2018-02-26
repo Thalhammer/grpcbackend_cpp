@@ -8,7 +8,7 @@ namespace thalhammer {
 				class rewrite : public middleware {
 					std::function<std::string(request&, response&)> func;
 				public:
-					rewrite(std::function<std::string(request&, response&)> f);
+					explicit rewrite(std::function<std::string(request&, response&)> f);
 					// Geerbt über middleware
 					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
 				};

@@ -8,7 +8,7 @@ namespace thalhammer {
 			class request_forward: public request {
                 request& orig;
 			public:
-				request_forward(request& porig)
+				explicit request_forward(request& porig)
 					: orig(porig)
 				{}
                 // Clientinfo

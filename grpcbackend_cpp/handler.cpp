@@ -10,7 +10,7 @@ namespace thalhammer {
 			::thalhammer::http::HandleRequest req;
 			std::string _out_buf;
 		public:
-			handler_streambuf(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
+			explicit handler_streambuf(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
 				:_stream(stream), _out_buf(4096, 0x00)
 			{
 				setg(nullptr, nullptr, nullptr);
@@ -77,7 +77,7 @@ namespace thalhammer {
 			std::istream _istream;
 			std::ostream _ostream;
 		public:
-			handler_interface(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream);
+			explicit handler_interface(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream);
 
 			void send_headers();
 
@@ -147,8 +147,8 @@ namespace thalhammer {
 				}
 			}
 		public:
-			ws_connection(::grpc::ServerCompletionQueue* cq, handler& service, websocket::con_handler& con_handler)
-				: service(service), con_handler(con_handler), stream(&ctx), server_cq(cq), done(false)
+			ws_connection(::grpc::ServerCompletionQueue* cq, handler& pservice, websocket::con_handler& pcon_handler)
+				: service(pservice), con_handler(pcon_handler), stream(&ctx), server_cq(cq), done(false)
 			{
 				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"con create 0x" << std::hex << this;
 			}
