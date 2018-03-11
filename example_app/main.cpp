@@ -2,6 +2,9 @@
 #include "http/router.h"
 #include "websocket/hub.h"
 #include <grpc++/grpc++.h>
+#include "filesystem.h"
+#include <unistd.h>
+#include <ttl/module.h>
 
 using namespace thalhammer::grpcbackend;
 
@@ -51,7 +54,7 @@ int main(int argc, const char** argv) try {
 		.set_debug_mode(true)
 		.log_requests(mserver.get_logger())
 		.mime_detector()
-		.serve_dir("/", "./public/", true);
+		.serve_dir("/", "./public/", true, std::make_shared<zipfilesystem>(thalhammer::module::current_module().get_filename()));
 	mserver.get_wshub()
 		.set_default_handler(std::make_shared<defaulthandler>(mserver))
 		.add_group("default", std::make_shared<wshandler>(mserver));

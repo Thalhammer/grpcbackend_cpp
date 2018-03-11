@@ -5,6 +5,9 @@
 #include <memory>
 
 namespace thalhammer {
+	// Forward declaration to ttl
+	class mmap;
+	namespace io { class zip_reader; }
 	namespace grpcbackend {
 		enum class fs_filetype {
 			file,
@@ -25,6 +28,7 @@ namespace thalhammer {
 			}
 		};
 		struct ifilesystem {
+			virtual ~ifilesystem() {}
 			virtual bool exists(const std::string& path) = 0;
 			virtual fs_entry get_file(const std::string& path) = 0;
 			virtual std::set<fs_entry> get_files(const std::string& path) = 0;
@@ -34,6 +38,17 @@ namespace thalhammer {
 			bool exists(const std::string& path) override;
 			fs_entry get_file(const std::string& path) override;
 			std::set<fs_entry> get_files(const std::string& path) override;
+			std::unique_ptr<std::istream> open_file(const std::string& path) override;
+		};
+		class zipfilesystem : public ifilesystem {
+			std::unique_ptr<thalhammer::mmap> resdata;
+			std::unique_ptr<thalhammer::io::zip_reader> zip;
+		public:
+			zipfilesystem(const std::string& path, bool precache = true);
+			~zipfilesystem();
+			bool exists(const std::string& path) override;
+			grpcbackend::fs_entry get_file(const std::string& path) override;
+			std::set<grpcbackend::fs_entry> get_files(const std::string& path) override;
 			std::unique_ptr<std::istream> open_file(const std::string& path) override;
 		};
 	}

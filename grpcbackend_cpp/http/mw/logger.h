@@ -11,7 +11,7 @@ namespace thalhammer {
 					thalhammer::loglevel _lvl;
 					thalhammer::logmodule _module;
 				public:
-					logger(thalhammer::logger& log, thalhammer::loglevel lvl = thalhammer::loglevel::DEBUG, thalhammer::logmodule module = { "http" });
+					logger(thalhammer::logger& log, thalhammer::loglevel lvl = thalhammer::loglevel::DEBUG, thalhammer::logmodule module = thalhammer::logmodule("http"));
 					// Geerbt über middleware
 					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
 				};

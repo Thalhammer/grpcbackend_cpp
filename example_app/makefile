@@ -8,7 +8,7 @@ DEP_DIR = .deps
 FLAGS ?= -Wall -Wno-unknown-pragmas -I ../ttl/ttl/include -I ../date/include -I ../grpcbackend_cpp/
 CXXFLAGS ?= -std=c++14 -DPICOJSON_USE_INT64
 CFLAGS ?=
-LINKFLAGS ?= -L../grpcbackend_cpp/debug/static -lgrpcbackend -lprotobuf -lgrpc++ -lboost_system -lboost_filesystem -pthread
+LINKFLAGS ?= -L../grpcbackend_cpp/debug/static -lgrpcbackend -lprotobuf -lgrpc++ -lboost_system -lboost_filesystem -pthread -ldl -lz
 
 OUTNAME := example
 
@@ -50,7 +50,7 @@ $(OUTNAME): $(OBJ)
 
 clean:
 	@echo Removing build results
-	@rm -rf $(OUTNAME)
+	@rm -rf $(OUTNAME) $(OBJ)
 	@echo Removing dependency files
 	@rm -rf $(DEP_DIR)
 	@echo Removing deb files
