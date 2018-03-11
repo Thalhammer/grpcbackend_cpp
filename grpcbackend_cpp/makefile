@@ -16,25 +16,29 @@ LINKFLAGS ?= -lprotobuf -lgrpc++ -lboost_system -lboost_filesystem -pthread
 OUTNAME := libgrpcbackend
 
 ARCH := $(shell getconf LONG_BIT)
-DEBVERSION := $(shell git describe --tags --long | cut -d- -f1,2 | cut -c2-)
-DEBFOLDER := $(OUTNAME)_$(DEBVERSION)
+GITVERSION := $(shell git describe --tags --long | cut -d- -f1,2 | cut -c2-)
+DEBVERSION ?= $(firstword $(subst -, ,$(GITVERSION)))
+DEBITERATION ?= $(or $(word 2,$(subst -, ,$(GITVERSION))),0)
+DEBFOLDER ?= $(OUTNAME)_$(DEBVERSION)-$(DEBITERATION)
+
+FPM := fpm --verbose -s dir -t deb -v $(DEBVERSION) --iteration $(DEBITERATION) -m 'Dominik Thalhammer <dominik@thalhammer.it>' --vendor 'Dominik Thalhammer <dominik@thalhammer.it>' --url 'https://github.com/Thalhammer/grpcbackend_cpp' -C $(DEBFOLDER)
 
 .PHONY: clean debug release package debug_static debug_shared release_static release_shared
 .PRECIOUS: $(PROTOGEN) $(PROTOHEADERS)
 
-all: release debug
-release: release_static release_shared
-debug: debug_static debug_shared
+all: release debug | $(PROTOHEADERS)
+release: release_static release_shared | $(PROTOHEADERS)
+debug: debug_static debug_shared | $(PROTOHEADERS)
 
 debug_static: FLAGS += -g -Og -fsanitize=address -fno-omit-frame-pointer
 debug_static: LINKFLAGS += -lasan
-debug_static:
+debug_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=debug/static)
 	$(eval export FLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
 release_static: FLAGS += -O2 -march=native
-release_static:
+release_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/static)
 	$(eval export FLAGS)
 	$(eval export BUILDDIR)
@@ -42,13 +46,13 @@ release_static:
 	@strip --strip-unneeded $(BUILDDIR)/$(OUTNAME).a
 debug_shared: FLAGS += -g -Og -fPIC -fsanitize=address -fno-omit-frame-pointer
 debug_shared: LINKFLAGS += -lasan
-debug_shared:
+debug_shared: | $(PROTOHEADERS)
 	$(eval BUILDDIR=debug/shared)
 	$(eval export FLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).so --no-print-directory
 release_shared: FLAGS += -O2 -fPIC -march=native -flto
-release_shared:
+release_shared: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/shared)
 	$(eval export FLAGS)
 	$(eval export BUILDDIR)
@@ -65,21 +69,21 @@ $(BUILDDIR)/$(OUTNAME).a: $(OBJ)
 	@gcc-ar rcs $@ $^
 	@echo Build done
 
-$(BUILDDIR)/%.cc.o: %.cc $(PROTOHEADERS)
+$(BUILDDIR)/%.cc.o: %.cc  | $(PROTOHEADERS)
 	@echo Building $<
 	@mkdir -p `dirname $@`
 	@$(CXX) -c $(FLAGS) $(CXXFLAGS) $< -o $@
 	@mkdir -p `dirname $(DEP_DIR)/$@.d`
 	@$(CXX) -c $(FLAGS) $(CXXFLAGS) -MT '$@' -MM $< > $(DEP_DIR)/$@.d
 
-$(BUILDDIR)/%.cpp.o: %.cpp $(PROTOHEADERS)
+$(BUILDDIR)/%.cpp.o: %.cpp | $(PROTOHEADERS)
 	@echo Building $<
 	@mkdir -p `dirname $@`
 	@$(CXX) -c $(FLAGS) $(CXXFLAGS) $< -o $@
 	@mkdir -p `dirname $(DEP_DIR)/$@.d`
 	@$(CXX) -c $(FLAGS) $(CXXFLAGS) -MT '$@' -MM $< > $(DEP_DIR)/$@.d
 
-$(BUILDDIR)/%.c.o: %.c $(PROTOHEADERS)
+$(BUILDDIR)/%.c.o: %.c | $(PROTOHEADERS)
 	@echo Building $<
 	@mkdir -p `dirname $@`
 	@$(CC) -c $(FLAGS) $(CFLAGS) $< -o $@
@@ -87,11 +91,11 @@ $(BUILDDIR)/%.c.o: %.c $(PROTOHEADERS)
 	@$(CC) -c $(FLAGS) $(CFLAGS) -MT '$@' -MM $< > $(DEP_DIR)/$@.d
 
 %.grpc.pb.cc %.grpc.pb.h: %.proto
-	@echo Generating $^
+	@echo Generating $@
 	@protoc -I . --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` $<
 
 %.pb.cc %.pb.h: %.proto
-	@echo Generating $^
+	@echo Generating $@
 	@protoc -I . --cpp_out=. $<
 
 clean:
@@ -100,32 +104,27 @@ clean:
 	@echo Removing dependency files
 	@rm -rf $(DEP_DIR)
 	@echo Removing deb files
-	@rm -rf $(DEBFOLDER) $(DEBFOLDER).deb
+	@rm -rf $(DEBFOLDER) libgrpcbackend_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend0_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend-dev_$(DEBVERSION)-$(DEBITERATION)_amd64.deb
 
-package: $(DEBFOLDER).deb
+distclean: clean
+	@echo Removing generated protobuf files
+	@rm -rf $(PROTOGEN) $(PROTOHEADERS)
 
-$(DEBFOLDER).deb: | release
-	@rm -r -f $(DEBFOLDER)
+package: | release
+	@rm -rf $(DEBFOLDER)
 	@echo Creating package
-	@mkdir -p $(DEBFOLDER)/DEBIAN
+	@mkdir $(DEBFOLDER)
+	# Build legacy package with no contents
+	@$(FPM) -n libgrpcbackend --description "libgrpcbackend-dev legacy upgrade package" -d "libgrpcbackend-dev"
+
 	@mkdir -p $(DEBFOLDER)/usr/include/grpcbackend/
 	@mkdir -p $(DEBFOLDER)/usr/lib/
-	@echo "Package: libgrpcbackend" >> $(DEBFOLDER)/DEBIAN/control
-	@echo "Version: $(DEBVERSION)" >> $(DEBFOLDER)/DEBIAN/control
-	@echo "Section: devel" >> $(DEBFOLDER)/DEBIAN/control
-	@echo "Priority: optional" >> $(DEBFOLDER)/DEBIAN/control
-ifeq ($(ARCH),64)
-	@echo "Architecture: amd64" >> $(DEBFOLDER)/DEBIAN/control
-else
-	@echo "Architecture: i386" >> $(DEBFOLDER)/DEBIAN/control
-endif
-	@echo "Depends: libssl1.0.0, libstdc++6, libgcc1" >> $(DEBFOLDER)/DEBIAN/control
-	@echo "Maintainer: Dominik Thalhammer <dominik@thalhammer.it>" >> $(DEBFOLDER)/DEBIAN/control
-	@echo "Description: Provides a library to help developing a service for mod_grpcbackend." >> $(DEBFOLDER)/DEBIAN/control
+
 	@find . -name $(DEBFOLDER) -prune -o -name '*.h' -exec cp --parents \{\} $(DEBFOLDER)/usr/include/grpcbackend/ \;
 	@cp release/shared/$(OUTNAME).so $(DEBFOLDER)/usr/lib/$(OUTNAME).so.$(DEBVERSION)
 	@cp release/static/$(OUTNAME).a $(DEBFOLDER)/usr/lib/$(OUTNAME).a
 	@ln -s $(OUTNAME).so.$(DEBVERSION) $(DEBFOLDER)/usr/lib/$(OUTNAME).so
-	@fakeroot dpkg-deb --build $(DEBFOLDER)
+	@$(FPM) -n libgrpcbackend0 --description "Provides a library to help developing a service for mod_grpcbackend." -d "libssl1.0.0" -d "libstdc++6" -d "libgcc1" usr/lib/$(OUTNAME).so.$(DEBVERSION)
+	@$(FPM) -n libgrpcbackend-dev --description "Provides a library to help developing a service for mod_grpcbackend (development headers)" -d "libgrpcbackend0 = $(DEBVERSION)-$(DEBITERATION)" usr/include/grpcbackend usr/lib/$(OUTNAME).a usr/lib/$(OUTNAME).so
 
 -include $(OBJ:%=$(DEP_DIR)/%.d)
