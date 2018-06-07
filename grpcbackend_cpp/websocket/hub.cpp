@@ -14,6 +14,8 @@ namespace thalhammer {
 			{
 				for(auto& e: _groups) {
 					std::unique_lock<std::mutex> lck(e.second->cons_lck);
+					for(auto& c : e.second->cons)
+						c->close();
 					e.second->cons.clear();
 				}
 				return *this;
@@ -22,23 +24,25 @@ namespace thalhammer {
 			void hub::on_connect(connection_ptr con)
 			{
 				_logger(loglevel::TRACE, "wshub") << "on_connect: 0x" << std::hex << con.get();
-				if(_default_handler)
-					_default_handler->on_connect(con);
+				auto hdl = std::atomic_load(&_default_handler);
+				if(hdl)
+					hdl->on_connect(con);
 			}
 
 			void hub::on_message(connection_ptr con, bool bin, const std::string& msg)
 			{
 				_logger(loglevel::TRACE, "wshub") << "on_message: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
+				auto hdl = std::atomic_load(&_default_handler);
 				if(attr) {
 					auto group = attr->group.lock();
 					if(group) {
-						group->handler->on_message(con, bin, msg);
+						hdl = group->handler;
 						return;
 					}
 				}
-				if(_default_handler)
-					_default_handler->on_message(con, bin, msg);
+				if(hdl)
+					hdl->on_message(con, bin, msg);
 			}
 
 			void hub::on_disconnect(connection_ptr con)
@@ -48,7 +52,8 @@ namespace thalhammer {
 				if(attr) {
 					auto group = attr->group.lock();
 					if(group) {
-						group->handler->on_disconnect(con);
+						if(group->handler)
+							group->handler->on_disconnect(con);
 						{
 							std::unique_lock<std::mutex> lck(group->cons_lck);
 							group->cons.erase(con);
@@ -57,20 +62,23 @@ namespace thalhammer {
 						return;
 					}
 				}
-				if(_default_handler)
-					_default_handler->on_disconnect(con);
+				auto hdl = std::atomic_load(&_default_handler);
+				if(hdl)
+					hdl->on_disconnect(con);
 			}
 
 			hub& hub::set_default_handler(std::shared_ptr<con_handler> handler)
 			{
-				_default_handler = handler;
+				std::atomic_store(&_default_handler, handler);
 				return *this;
 			}
 
 			hub& hub::set_connection_group(const connection_ptr& con, const std::string& gname)
 			{
-				if(_groups.count(gname)==0)
+				if(_groups.count(gname)==0) {
+					_logger(loglevel::WARN, "wshub") << "Tried to set not existing group " << gname << " on connection " << std::hex << con.get();
 					return *this;
+				}
 				auto attr = con->get_attribute<group_attribute>();
 				if(!attr) {
 					attr = std::make_shared<group_attribute>();
@@ -99,7 +107,7 @@ namespace thalhammer {
 			hub& hub::add_group(const std::string& name, std::shared_ptr<con_handler> handler)
 			{
 				if(!handler) {
-					handler = _default_handler;
+					handler = std::atomic_load(&_default_handler);
 				}
 				if(_groups.count(name)==0) {
 					auto g = std::make_shared<group>();
