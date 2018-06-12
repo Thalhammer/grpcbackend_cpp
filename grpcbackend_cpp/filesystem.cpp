@@ -46,7 +46,6 @@ namespace thalhammer {
 				me.file_name = entry.path().has_filename() ? entry.path().filename().string() : "";
 				me.lmodified = fs::last_write_time(entry.path());
 				me.name = entry.path().string();
-				me.size = fs::file_size(entry.path());
 				switch(entry.status().type()) {
 					case fs::file_type::directory_file:
 						me.type = fs_filetype::directory; break;
@@ -57,13 +56,20 @@ namespace thalhammer {
 				}
 				if(me.is_file())
 					me.size = fs::file_size(entry.path());
+				else {
+					me.size = 0;
+					for(auto& e : fs::directory_iterator(entry.path())) {
+						(void)e;
+						me.size++;
+					}
+				}
 				res.insert(me);
 			}
 			return res;
 		}
 
 		std::unique_ptr<std::istream> osfilesystem::open_file(const std::string& path) {
-			return std::make_unique<std::ifstream>(path, std::ios::binary | std::ios::ate);
+			return std::make_unique<std::ifstream>(path, std::ios::binary | std::ios::in);
 		}
 
 		static std::string zip_fix_path(const std::string& path) {
