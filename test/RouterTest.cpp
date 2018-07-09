@@ -8,7 +8,7 @@ using namespace thalhammer::grpcbackend;
 
 struct dummy_middleware : http::middleware {
 	bool called = false;
-	// Geerbt über middleware
+	// Geerbt ï¿½ber middleware
 	virtual void handle_request(http::request & req, http::response & resp, std::function<void(http::request&, http::response&)>& next) override
 	{
 		called = true;
@@ -65,7 +65,7 @@ TEST(RouterTest, HandlerCalled) {
 TEST(RouterTest, RouteParams) {
 	http::router r;
 	bool called = false;
-	r.route("GET", "/{name}", [&](auto& req, auto& resp) {
+	r.route("GET", "/{name}", [&](http::request& req, auto& resp) {
 		resp.set_status(200);
 		std::shared_ptr<http::route_params> params = req.get_attribute<http::route_params>();
 		ASSERT_NE(params, nullptr);

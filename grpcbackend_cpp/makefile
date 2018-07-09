@@ -35,12 +35,14 @@ debug_static: LINKFLAGS += -lasan
 debug_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=debug/static)
 	$(eval export FLAGS)
+	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
 release_static: FLAGS += -O2 -march=native
 release_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/static)
 	$(eval export FLAGS)
+	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
 	@strip --strip-unneeded $(BUILDDIR)/$(OUTNAME).a
@@ -49,12 +51,14 @@ debug_shared: LINKFLAGS += -lasan
 debug_shared: | $(PROTOHEADERS)
 	$(eval BUILDDIR=debug/shared)
 	$(eval export FLAGS)
+	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).so --no-print-directory
 release_shared: FLAGS += -O2 -fPIC -march=native -flto
 release_shared: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/shared)
 	$(eval export FLAGS)
+	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).so --no-print-directory
 	@strip --strip-unneeded $(BUILDDIR)/$(OUTNAME).so

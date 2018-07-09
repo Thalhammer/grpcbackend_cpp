@@ -38,6 +38,13 @@ namespace thalhammer {
 					}
 					return res;
 			}
+
+			// URL Decode a string
+			static std::string url_decode(const std::string& str);
+			// URL Encode a string
+			static std::string url_encode(const std::string& str);
+			// Parse formdata
+			static std::unordered_multimap<std::string, std::string> parse_formdata(const std::string& data);
 		};
 
 		class invalid_uri_exception : std::runtime_error {
