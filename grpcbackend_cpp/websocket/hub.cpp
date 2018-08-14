@@ -38,7 +38,6 @@ namespace thalhammer {
 					auto group = attr->group.lock();
 					if(group) {
 						hdl = group->handler;
-						return;
 					}
 				}
 				if(hdl)
@@ -49,11 +48,12 @@ namespace thalhammer {
 			{
 				_logger(loglevel::TRACE, "wshub") << "on_disconnect: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
+				auto hdl = std::atomic_load(&_default_handler);
 				if(attr) {
 					auto group = attr->group.lock();
 					if(group) {
-						if(group->handler)
-							group->handler->on_disconnect(con);
+						if(group->handler) group->handler->on_disconnect(con);
+						else if(hdl) hdl->on_disconnect(con);
 						{
 							std::unique_lock<std::mutex> lck(group->cons_lck);
 							group->cons.erase(con);
@@ -62,7 +62,6 @@ namespace thalhammer {
 						return;
 					}
 				}
-				auto hdl = std::atomic_load(&_default_handler);
 				if(hdl)
 					hdl->on_disconnect(con);
 			}
