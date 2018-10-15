@@ -312,3 +312,5 @@ grpcbackend_cpp/handler.pb.cc
 *.o
 .deps
 grpcbackend_cpp/grpcbackend_cpp
+
+.vscode

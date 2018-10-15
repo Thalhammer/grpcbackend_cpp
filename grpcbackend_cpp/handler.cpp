@@ -120,7 +120,7 @@ namespace thalhammer {
 				auto that = this->shared_from_this();
 				std::unique_lock<std::mutex> lck(this->response_queue_lck);
 				bool done = response_queue.front()->message().type() == thalhammer::http::WebSocketMessage::CLOSE;
-				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") << "write ok:" << (ok ?"true":"false");
+				service.get_logger()(ttl::loglevel::TRACE, "websocket") << "write ok:" << (ok ?"true":"false");
 				response_queue.pop();
 				if(!this->done && !response_queue.empty()) {
 					stream.Write(*response_queue.front(), new cont_function_t([that](bool ok){
@@ -131,7 +131,7 @@ namespace thalhammer {
 					this->con_handler.on_disconnect(that);
 					if(this->done.exchange(true)) return;
 					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
-						that->service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"finish (server) called";
+						that->service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"finish (server) called";
 					}));
 				}
 			}
@@ -150,11 +150,11 @@ namespace thalhammer {
 			ws_connection(::grpc::ServerCompletionQueue* cq, handler& pservice, websocket::con_handler& pcon_handler)
 				: service(pservice), con_handler(pcon_handler), stream(&ctx), server_cq(cq), done(false)
 			{
-				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"con create 0x" << std::hex << this;
+				service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"con create 0x" << std::hex << this;
 			}
 
 			virtual ~ws_connection() {
-				service.get_logger()(thalhammer::loglevel::TRACE, "websocket") << "con destroy 0x" << std::hex << this;
+				service.get_logger()(ttl::loglevel::TRACE, "websocket") << "con destroy 0x" << std::hex << this;
 			}
 			
 			void start() {
@@ -173,7 +173,7 @@ namespace thalhammer {
 						that->req.CopyFrom(msg->request());
 						for (int i = 0; i < that->req.headers_size(); i++) {
 							auto& hdr = that->req.headers()[i];
-							that->req_headers.insert({ string::to_lower_copy(hdr.key()), hdr.value() });
+							that->req_headers.insert({ ttl::string::to_lower_copy(hdr.key()), hdr.value() });
 						}
 						that->on_connect(std::shared_ptr<const ::thalhammer::http::WebSocketRequest>(msg, &msg->request()));
 					}));
@@ -204,7 +204,7 @@ namespace thalhammer {
 					this->con_handler.on_disconnect(this->shared_from_this());
 					if(this->done.exchange(true)) return;
 					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
-						that->service.get_logger()(thalhammer::loglevel::TRACE, "websocket") <<"finish (client) called";
+						that->service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"finish (client) called";
 					}));
 				}
 				else if(!this->done){
@@ -251,7 +251,7 @@ namespace thalhammer {
 
 			// Only valid during on_connect
 			virtual void set_header(const std::string& pkey, const std::string& value, bool replace = false) override {
-				auto key = string::to_lower_copy(pkey);
+				auto key = ttl::string::to_lower_copy(pkey);
 				if (replace) {
 					resp_headers.erase(key);
 				}
@@ -259,7 +259,7 @@ namespace thalhammer {
 			}
 		};
 
-		handler::handler(http::router & route, websocket::con_handler& ws_handler, thalhammer::logger& logger)
+		handler::handler(http::router & route, websocket::con_handler& ws_handler, ttl::logger& logger)
 			:_route(route), _ws_handler(ws_handler), _logger(logger)
 		{
 		}
@@ -313,7 +313,7 @@ namespace thalhammer {
 			}
 			for (int i = 0; i < _initial_req.request().headers_size(); i++) {
 				auto& hdr = _initial_req.request().headers()[i];
-				_req_headers.insert({ string::to_lower_copy(hdr.key()), hdr.value() });
+				_req_headers.insert({ ttl::string::to_lower_copy(hdr.key()), hdr.value() });
 			}
 		}
 
@@ -336,7 +336,7 @@ namespace thalhammer {
 
 		void handler_interface::set_header(const std::string & pkey, const std::string & value, bool replace)
 		{
-			auto key = string::to_lower_copy(pkey);
+			auto key = ttl::string::to_lower_copy(pkey);
 			if (replace) {
 				for (int i = 0; i < _initial_resp.response().headers_size(); i++)
 				{

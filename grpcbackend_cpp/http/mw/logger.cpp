@@ -4,7 +4,7 @@ namespace thalhammer {
 	namespace grpcbackend {
 		namespace http {
 			namespace mw {
-				logger::logger(thalhammer::logger& log, thalhammer::loglevel lvl, thalhammer::logmodule module)
+				logger::logger(ttl::logger& log, ttl::loglevel lvl, ttl::logmodule module)
                     : _log(log), _lvl(lvl), _module(module)
                 {}
 

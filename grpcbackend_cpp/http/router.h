@@ -6,8 +6,10 @@
 #include <regex>
 #include <exception>
 
-namespace thalhammer {
+namespace ttl {
 	class logger;
+}
+namespace thalhammer {
 	namespace grpcbackend {
 		struct ifilesystem;
 		namespace http {
@@ -47,7 +49,7 @@ namespace thalhammer {
 				router& serve_dir(const std::string& uri, const std::string& dir, bool allow_listing = true);
 				router& serve_dir(const std::string& uri, const std::string& dir, bool allow_listing, std::shared_ptr<ifilesystem> fs);
 				// Add logging middleware for specified stream
-				router& log_requests(thalhammer::logger& stream, pos p = pos::BEGIN);
+				router& log_requests(ttl::logger& stream, pos p = pos::BEGIN);
 				// Add content-type header based on uri file extension
 				router& mime_detector(const std::string& mimefile = "mime.types", pos p = pos::BEGIN);
 				router& mime_detector(std::istream& stream, pos p = pos::BEGIN);

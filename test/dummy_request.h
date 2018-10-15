@@ -14,26 +14,26 @@ struct dummy_request : public thalhammer::grpcbackend::http::request {
 	std::string post_data;
 	std::unique_ptr<std::istringstream> post_body;
 
-	static dummy_request make_get(const std::string& uri, bool ssl = false) {
-		dummy_request res;
-		res.server_port = ssl ? 443 : 80;
-		res.encrypted = ssl;
-		res.method = "GET";
-		res.resource = uri;
+	static std::unique_ptr<dummy_request> make_get(const std::string& uri, bool ssl = false) {
+		auto res = std::make_unique<dummy_request>();
+		res->server_port = ssl ? 443 : 80;
+		res->encrypted = ssl;
+		res->method = "GET";
+		res->resource = uri;
 		return res;
 	}
 
-	static dummy_request make_post(const std::string& uri, const std::string& data, bool ssl = false) {
-		dummy_request res;
-		res.server_port = ssl ? 443 : 80;
-		res.encrypted = ssl;
-		res.method = "POST";
-		res.resource = uri;
-		res.post_data = data;
+	static std::unique_ptr<dummy_request> make_post(const std::string& uri, const std::string& data, bool ssl = false) {
+		auto res = std::make_unique<dummy_request>();
+		res->server_port = ssl ? 443 : 80;
+		res->encrypted = ssl;
+		res->method = "POST";
+		res->resource = uri;
+		res->post_data = data;
 		return res;
 	}
 
-	// Geerbt über request
+	// Geerbt ï¿½ber request
 	virtual const std::string & get_client_ip() const override
 	{
 		return client_ip;

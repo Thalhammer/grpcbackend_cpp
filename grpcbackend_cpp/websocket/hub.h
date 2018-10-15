@@ -25,9 +25,9 @@ namespace thalhammer {
 				};
 
 				std::shared_ptr<con_handler> _default_handler;
-				thalhammer::logger& _logger;
+				ttl::logger& _logger;
 			public:
-				explicit hub(thalhammer::logger& logger);
+				explicit hub(ttl::logger& logger);
 				~hub();
 
 				hub& close_all();

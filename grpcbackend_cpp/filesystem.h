@@ -4,10 +4,12 @@
 #include <istream>
 #include <memory>
 
-namespace thalhammer {
+namespace ttl {
 	// Forward declaration to ttl
 	class mmap;
 	namespace io { class zip_reader; }
+}
+namespace thalhammer {
 	namespace grpcbackend {
 		enum class fs_filetype {
 			file,
@@ -41,8 +43,8 @@ namespace thalhammer {
 			std::unique_ptr<std::istream> open_file(const std::string& path) override;
 		};
 		class zipfilesystem : public ifilesystem {
-			std::unique_ptr<thalhammer::mmap> resdata;
-			std::unique_ptr<thalhammer::io::zip_reader> zip;
+			std::unique_ptr<ttl::mmap> resdata;
+			std::unique_ptr<ttl::io::zip_reader> zip;
 		public:
 			zipfilesystem(const std::string& path, bool precache = true);
 			~zipfilesystem();

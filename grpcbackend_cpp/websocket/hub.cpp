@@ -4,7 +4,7 @@ namespace thalhammer {
 	namespace grpcbackend {
 		namespace websocket {
 
-			hub::hub(thalhammer::logger& logger)
+			hub::hub(ttl::logger& logger)
 				: _logger(logger)
 			{}
 			hub::~hub() {
@@ -23,7 +23,7 @@ namespace thalhammer {
 
 			void hub::on_connect(connection_ptr con)
 			{
-				_logger(loglevel::TRACE, "wshub") << "on_connect: 0x" << std::hex << con.get();
+				_logger(ttl::loglevel::TRACE, "wshub") << "on_connect: 0x" << std::hex << con.get();
 				auto hdl = std::atomic_load(&_default_handler);
 				if(hdl)
 					hdl->on_connect(con);
@@ -31,7 +31,7 @@ namespace thalhammer {
 
 			void hub::on_message(connection_ptr con, bool bin, const std::string& msg)
 			{
-				_logger(loglevel::TRACE, "wshub") << "on_message: 0x" << std::hex << con.get();
+				_logger(ttl::loglevel::TRACE, "wshub") << "on_message: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
 				auto hdl = std::atomic_load(&_default_handler);
 				if(attr) {
@@ -46,7 +46,7 @@ namespace thalhammer {
 
 			void hub::on_disconnect(connection_ptr con)
 			{
-				_logger(loglevel::TRACE, "wshub") << "on_disconnect: 0x" << std::hex << con.get();
+				_logger(ttl::loglevel::TRACE, "wshub") << "on_disconnect: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
 				auto hdl = std::atomic_load(&_default_handler);
 				if(attr) {
@@ -75,7 +75,7 @@ namespace thalhammer {
 			hub& hub::set_connection_group(const connection_ptr& con, const std::string& gname)
 			{
 				if(_groups.count(gname)==0) {
-					_logger(loglevel::WARN, "wshub") << "Tried to set not existing group " << gname << " on connection " << std::hex << con.get();
+					_logger(ttl::loglevel::WARN, "wshub") << "Tried to set not existing group " << gname << " on connection " << std::hex << con.get();
 					return *this;
 				}
 				auto attr = con->get_attribute<group_attribute>();

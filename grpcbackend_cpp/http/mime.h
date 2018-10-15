@@ -23,7 +23,7 @@ namespace thalhammer {
 					size_t l = 0;
 					while (std::getline(stream, line)) {
 						l++;
-						string::trim(line);
+						ttl::string::trim(line);
 						if (line[0] == '#')
 							continue;
 						auto pos = line.find_first_of(" \t");
@@ -31,10 +31,10 @@ namespace thalhammer {
 							return false;
 						auto type = line.substr(0, pos);
 						line = line.substr(pos);
-						string::ltrim(line);
+						ttl::string::ltrim(line);
 
-						for (auto& ext : string::split(line, " "s)) {
-							string::trim(ext);
+						for (auto& ext : ttl::string::split(line, " "s)) {
+							ttl::string::trim(ext);
 							if (ext.empty())
 								continue;
 							mime_lookup[ext] = type;

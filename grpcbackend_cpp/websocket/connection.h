@@ -44,12 +44,12 @@ namespace thalhammer {
 				}
 
 				bool has_header(const std::string& key) const {
-					return get_headers().count(string::to_lower_copy(key)) != 0;
+					return get_headers().count(ttl::string::to_lower_copy(key)) != 0;
 				}
 
 				const std::string& get_header(const std::string& key) const {
 					static const std::string empty = "";
-					auto k = string::to_lower_copy(key);
+					auto k = ttl::string::to_lower_copy(key);
 					auto& headers = get_headers();
 					if (headers.count(k) != 0)
 						return headers.find(k)->second;

@@ -10,8 +10,6 @@ namespace thalhammer {
 				std::map<std::string, std::string> params;
 				std::string selected_route;
 			public:
-				virtual ~route_params();
-
 				const std::string& get_selected_route() const;
 				void set_selected_route(const std::string& route);
 

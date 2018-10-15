@@ -11,12 +11,12 @@ namespace thalhammer {
 		{
 			http::router& _route;
 			websocket::con_handler& _ws_handler;
-			thalhammer::logger& _logger;
+			ttl::logger& _logger;
 		public:
-			handler(http::router& route, websocket::con_handler& ws_handler, thalhammer::logger& logger);
+			handler(http::router& route, websocket::con_handler& ws_handler, ttl::logger& logger);
 			virtual ~handler();
 
-			thalhammer::logger& get_logger() { return _logger; }
+			ttl::logger& get_logger() { return _logger; }
 
 			void async_task(::grpc::ServerCompletionQueue* cq);
 

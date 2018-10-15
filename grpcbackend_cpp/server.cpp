@@ -13,14 +13,14 @@ namespace thalhammer {
 		};
 
 		server::server(std::ostream & logstream)
-			: server(std::make_shared<logger>(logstream))
+			: server(std::make_shared<ttl::streamlogger>(logstream))
 		{}
 
-		server::server(logger& l)
-			: server(std::shared_ptr<logger>(&l, [](logger*){}))
+		server::server(ttl::logger& l)
+			: server(std::shared_ptr<ttl::logger>(&l, [](ttl::logger*){}))
 		{}
 
-		server::server(std::shared_ptr<logger> l)
+		server::server(std::shared_ptr<ttl::logger> l)
 			: server(options{ l, 0 })
 		{}
 
@@ -30,11 +30,11 @@ namespace thalhammer {
 			if (opts.num_worker_threads == 0) {
 				auto env = getenv("GRPCBACKEND_NUM_WORKERS");
 				if (env) {
-					get_logger()(loglevel::TRACE, "grpc_server") << "Workercount set by environment";
+					get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Workercount set by environment";
 					opts.num_worker_threads = std::stoul(env);
 				}
 				else {
-					get_logger()(loglevel::TRACE, "grpc_server") << "Workercount not specified, using number of cpu cores";
+					get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Workercount not specified, using number of cpu cores";
 					opts.num_worker_threads = std::thread::hardware_concurrency();
 				}
 			}
@@ -43,7 +43,7 @@ namespace thalhammer {
 			http_service = std::make_unique<handler>(*router, *hub, *log);
 			builder = std::make_unique<::grpc::ServerBuilder>();
 			builder->RegisterService(http_service.get());
-			get_logger()(loglevel::TRACE, "grpc_server") << "Using " << opts.num_worker_threads << " worker threads";
+			get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Using " << opts.num_worker_threads << " worker threads";
 			for (size_t i = 0; i < opts.num_worker_threads; i++) {
 				auto cq = builder->AddCompletionQueue(false);
 				cqs.push_back({ std::thread(), std::move(cq) });
@@ -68,9 +68,9 @@ namespace thalhammer {
 
 			for (auto& cq : cqs) {
 				cq.th = std::thread([&]() {
-					get_logger()(loglevel::TRACE, "grpc_server") << "CQ thread start";
+					get_logger()(ttl::loglevel::TRACE, "grpc_server") << "CQ thread start";
 					http_service->async_task(cq.cq.get());
-					get_logger()(loglevel::TRACE, "grpc_server") << "CQ thread exit";
+					get_logger()(ttl::loglevel::TRACE, "grpc_server") << "CQ thread exit";
 				});
 			}
 		}

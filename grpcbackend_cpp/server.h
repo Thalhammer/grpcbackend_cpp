@@ -17,7 +17,7 @@ namespace thalhammer {
 		namespace websocket { class hub; }
 		class server
 		{
-			std::shared_ptr<logger> log;
+			std::shared_ptr<ttl::logger> log;
 			std::unique_ptr<http::router> router;
 			std::unique_ptr<websocket::hub> hub;
 			std::unique_ptr<handler> http_service;
@@ -30,13 +30,13 @@ namespace thalhammer {
 			std::unique_ptr<::grpc::Server> mserver;
 		public:
 			struct options {
-				std::shared_ptr<logger> log;
+				std::shared_ptr<ttl::logger> log;
 				size_t num_worker_threads;
 			};
 
 			explicit server(std::ostream& logstream = std::cout);
-			explicit server(logger& l);
-			explicit server(std::shared_ptr<logger> l);
+			explicit server(ttl::logger& l);
+			explicit server(std::shared_ptr<ttl::logger> l);
 			explicit server(options opts);
 			server(const server& other) = delete;
 			server& operator=(const server& other) = delete;
@@ -47,7 +47,7 @@ namespace thalhammer {
 
 			::grpc::ServerBuilder& get_builder() { return *builder; }
 
-			thalhammer::logger& get_logger() { return *log; }
+			ttl::logger& get_logger() { return *log; }
 			http::router& get_router() { return *router; }
 			websocket::hub& get_wshub() { return *hub; }
 			handler& get_handler() { return *http_service; }

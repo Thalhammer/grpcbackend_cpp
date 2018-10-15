@@ -7,11 +7,11 @@ namespace thalhammer {
 		namespace http {
 			namespace mw {
 				class logger : public middleware {
-					thalhammer::logger& _log;
-					thalhammer::loglevel _lvl;
-					thalhammer::logmodule _module;
+					ttl::logger& _log;
+					ttl::loglevel _lvl;
+					ttl::logmodule _module;
 				public:
-					logger(thalhammer::logger& log, thalhammer::loglevel lvl = thalhammer::loglevel::DEBUG, thalhammer::logmodule module = thalhammer::logmodule("http"));
+					logger(ttl::logger& log, ttl::loglevel lvl = ttl::loglevel::DEBUG, ttl::logmodule module = ttl::logmodule("http"));
 					// Geerbt über middleware
 					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
 				};

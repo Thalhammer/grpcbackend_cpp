@@ -86,12 +86,12 @@ namespace thalhammer {
 		}
 
 		zipfilesystem::zipfilesystem(const std::string& path, bool precache)
-			: resdata(std::make_unique<thalhammer::mmap>(path))
+			: resdata(std::make_unique<ttl::mmap>(path))
 		{
 			// Open executable resources
 			if(!resdata->is_valid())
 				throw std::runtime_error("failed to mmap executable");
-			zip = std::make_unique<thalhammer::io::zip_reader>(resdata->data(), resdata->size());
+			zip = std::make_unique<ttl::io::zip_reader>(resdata->data(), resdata->size());
 			if(precache)
 				zip->uncompress();
 		}

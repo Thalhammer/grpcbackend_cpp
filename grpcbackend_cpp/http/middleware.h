@@ -9,6 +9,7 @@ namespace thalhammer {
 			class middleware {
 			public:
 				typedef std::shared_ptr<middleware> ptr;
+				virtual ~middleware() {}
 				virtual void handle_request(request& req, response& resp, std::function<void(request&, response&)>& next) = 0;
 			};
 			using middleware_ptr = middleware::ptr;

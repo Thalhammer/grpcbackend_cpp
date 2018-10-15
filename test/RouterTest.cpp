@@ -17,22 +17,22 @@ struct dummy_middleware : http::middleware {
 };
 
 TEST(RouterTest, NotFoundHandler) {
-	dummy_request req = dummy_request::make_get("/");
+	auto req = dummy_request::make_get("/");
 	dummy_response resp;
 	http::router r;
 	bool called = false;
 	r.notfound([&](auto& req, auto& resp) {
 		called = true;
 	});
-	r.handle_request(req, resp);
+	r.handle_request(*req, resp);
 	ASSERT_TRUE(called);
 }
 
 TEST(RouterTest, NotFound) {
-	dummy_request req = dummy_request::make_get("/");
+	auto req = dummy_request::make_get("/");
 	dummy_response resp;
 	http::router r;
-	r.handle_request(req, resp);
+	r.handle_request(*req, resp);
 	ASSERT_EQ(resp.status_code, 404);
 }
 
@@ -45,18 +45,18 @@ TEST(RouterTest, HandlerCalled) {
 	});
 
 	{
-		dummy_request req = dummy_request::make_get("/");
+		auto req = dummy_request::make_get("/");
 		dummy_response resp;
 		called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_TRUE(called);
 		ASSERT_EQ(resp.status_code, 200);
 	}
 	{
-		dummy_request req = dummy_request::make_post("/", "");
+		auto req = dummy_request::make_post("/", "");
 		dummy_response resp;
 		called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_FALSE(called);
 		ASSERT_EQ(resp.status_code, 404);
 	}
@@ -76,18 +76,18 @@ TEST(RouterTest, RouteParams) {
 	});
 
 	{
-		dummy_request req = dummy_request::make_get("/test");
+		auto req = dummy_request::make_get("/test");
 		dummy_response resp;
 		called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_TRUE(called);
 		ASSERT_EQ(resp.status_code, 200);
 	}
 	{
-		dummy_request req = dummy_request::make_get("/");
+		auto req = dummy_request::make_get("/");
 		dummy_response resp;
 		called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_FALSE(called);
 		ASSERT_EQ(resp.status_code, 404);
 	}
@@ -110,10 +110,10 @@ TEST(RouterTest, MiddleWare) {
 		called2 = true;
 	}, { lmw2 });
 	{
-		dummy_request req = dummy_request::make_get("/");
+		auto req = dummy_request::make_get("/");
 		dummy_response resp;
 		called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_TRUE(called);
 		ASSERT_FALSE(called2);
 		ASSERT_TRUE(gmw->called);
@@ -122,14 +122,14 @@ TEST(RouterTest, MiddleWare) {
 		ASSERT_EQ(resp.status_code, 200);
 	}
 	{
-		dummy_request req = dummy_request::make_get("/test");
+		auto req = dummy_request::make_get("/test");
 		dummy_response resp;
 		called = false;
 		called2 = false;
 		gmw->called = false;
 		lmw->called = false;
 		lmw2->called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_FALSE(called);
 		ASSERT_TRUE(called2);
 		ASSERT_TRUE(gmw->called);
@@ -138,14 +138,14 @@ TEST(RouterTest, MiddleWare) {
 		ASSERT_EQ(resp.status_code, 200);
 	}
 	{
-		dummy_request req = dummy_request::make_get("/test2");
+		auto req = dummy_request::make_get("/test2");
 		dummy_response resp;
 		called = false;
 		called2 = false;
 		gmw->called = false;
 		lmw->called = false;
 		lmw2->called = false;
-		r.handle_request(req, resp);
+		r.handle_request(*req, resp);
 		ASSERT_FALSE(called);
 		ASSERT_FALSE(called2);
 		ASSERT_TRUE(gmw->called);

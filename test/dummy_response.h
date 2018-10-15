@@ -8,14 +8,14 @@ struct dummy_response : thalhammer::grpcbackend::http::response {
 	std::multimap<std::string, std::string> headers;
 	std::ostringstream output;
 
-	// Geerbt über response
+	// Geerbt Ã¼ber response
 	virtual void set_status(int code, const std::string & message = "") override {
 		status_code = code;
 		status_message = message;
 	}
 
 	virtual void set_header(const std::string & key, const std::string & value, bool replace = false) override {
-		auto k = thalhammer::string::to_lower_copy(key);
+		auto k = ttl::string::to_lower_copy(key);
 		if (replace)
 			headers.erase(k);
 		headers.insert({ k, value });

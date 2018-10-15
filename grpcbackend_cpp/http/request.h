@@ -15,6 +15,8 @@ namespace thalhammer {
 				std::map<std::type_index, std::shared_ptr<attribute>> _attributes;
 				std::unique_ptr<uri> _parsed_uri;
 			public:
+				virtual ~request() {}
+
 				// Clientinfo
 				virtual const std::string& get_client_ip() const = 0;
 				virtual uint16_t get_client_port() const = 0;
@@ -47,12 +49,12 @@ namespace thalhammer {
 				}
 
 				bool has_header(const std::string& key) const {
-					return get_headers().count(string::to_lower_copy(key)) != 0;
+					return get_headers().count(ttl::string::to_lower_copy(key)) != 0;
 				}
 
 				const std::string& get_header(const std::string& key) const {
 					static const std::string empty = "";
-					auto k = string::to_lower_copy(key);
+					auto k = ttl::string::to_lower_copy(key);
 					auto& headers = get_headers();
 					if (headers.count(k) != 0)
 						return headers.find(k)->second;

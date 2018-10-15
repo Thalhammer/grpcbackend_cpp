@@ -173,7 +173,7 @@ namespace thalhammer {
 				return this->route(std::make_shared<http::route::filesystem_route_handler>(dir, allow_listing, uri + "{fs_path:.*}", fs));
 			}
 
-			router& router::log_requests(thalhammer::logger& stream, pos p)
+			router& router::log_requests(ttl::logger& stream, pos p)
 			{
 				return this->use(std::make_shared<http::mw::logger>(stream), p);
 			}
@@ -301,7 +301,7 @@ namespace thalhammer {
 
 			std::vector<router::route_match_info> router::parse_route(const std::string & uri)
 			{
-				auto parts = string::split(uri, std::string("/"));
+				auto parts = ttl::string::split(uri, std::string("/"));
 				std::vector<router::route_match_info> res;
 				for (auto& part : parts) {
 					route_match_info info;
@@ -356,12 +356,8 @@ namespace thalhammer {
 					}
 				}
 
-				std::string res = "^\\/" + string::join(parts, "\\/"s) + "$";
+				std::string res = "^\\/" + ttl::string::join(parts, "\\/"s) + "$";
 				return res;
-			}
-
-			route_params::~route_params()
-			{
 			}
 
 			const std::string & route_params::get_selected_route() const

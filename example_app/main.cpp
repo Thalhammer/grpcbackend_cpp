@@ -19,12 +19,12 @@ int main(int argc, const char** argv) try {
 		virtual void on_connect(websocket::connection_ptr con) override
 		{}
 		virtual void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
-			_s.get_logger()(thalhammer::loglevel::INFO, "ws") << "Message" << msg;
+			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Message " << msg;
 			_s.get_wshub().broadcast(con, bin, msg);
 			//con->send_message(bin, msg);
 		}
 		virtual void on_disconnect(websocket::connection_ptr con) override {
-			_s.get_logger()(thalhammer::loglevel::INFO, "ws") << "Closed connection from " << con->get_client_ip() << ":" << con->get_client_port();
+			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Closed connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
 	};
 	class defaulthandler : public websocket::con_handler {
@@ -41,7 +41,7 @@ int main(int argc, const char** argv) try {
 				con->close();
 			}).detach();
 			_s.get_wshub().set_connection_group(con, "default");
-			_s.get_logger()(thalhammer::loglevel::INFO, "ws") << "Opened connection from " << con->get_client_ip() << ":" << con->get_client_port();
+			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Opened connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
 		virtual void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
 		}
@@ -49,12 +49,13 @@ int main(int argc, const char** argv) try {
 		}
 	};
 
-	mserver.get_logger().set_loglevel(thalhammer::loglevel::TRACE);
+	mserver.get_logger().set_loglevel(ttl::loglevel::TRACE);
 	mserver.get_router()
 		.set_debug_mode(true)
 		.log_requests(mserver.get_logger())
 		.mime_detector()
-		.serve_dir("/", "./public/", true, std::make_shared<zipfilesystem>(thalhammer::module::current_module().get_filename()));
+		.serve_dir("/", "./public/");
+		//.serve_dir("/", "./public/", true, std::make_shared<zipfilesystem>(thalhammer::module::current_module().get_filename()));
 	mserver.get_wshub()
 		.set_default_handler(std::make_shared<defaulthandler>(mserver))
 		.add_group("default", std::make_shared<wshandler>(mserver));
