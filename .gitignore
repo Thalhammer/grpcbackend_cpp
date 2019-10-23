@@ -314,3 +314,7 @@ grpcbackend_cpp/handler.pb.cc
 grpcbackend_cpp/grpcbackend_cpp
 
 .vscode
+
+# debfolder
+/grpcbackend_cpp/libgrpcbackend_*
+/grpcbackend_cpp/*.deb

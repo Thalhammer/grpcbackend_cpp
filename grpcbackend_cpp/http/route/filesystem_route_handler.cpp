@@ -60,10 +60,9 @@ namespace thalhammer {
 							else {
 								auto file = fs->open_file(p.name);
 								if (file->good()) {
-									std::streamsize size = file->tellg();
 									file->seekg(0, std::ios::beg);
 									resp.set_status(200, "OK");
-									resp.set_header("Content-Length", std::to_string(size));
+									resp.set_header("Content-Length", std::to_string(p.size));
 									resp.set_header("Last-Modified", lmodified);
 									auto& stream = resp.get_ostream();
 

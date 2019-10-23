@@ -104,7 +104,7 @@ $(BUILDDIR)/%.c.o: %.c | $(PROTOHEADERS)
 
 clean:
 	@echo Removing build results
-	@rm -rf debug release
+	@rm -rf debug release $(PROTOHEADERS) $(PROTOGEN)
 	@echo Removing dependency files
 	@rm -rf $(DEP_DIR)
 	@echo Removing deb files
@@ -115,7 +115,7 @@ distclean: clean
 	@rm -rf $(PROTOGEN) $(PROTOHEADERS)
 
 package: | release
-	@rm -rf $(DEBFOLDER)
+	@rm -rf $(DEBFOLDER) libgrpcbackend_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend0_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend-dev_$(DEBVERSION)-$(DEBITERATION)_amd64.deb
 	@echo Creating package
 	@mkdir $(DEBFOLDER)
 	# Build legacy package with no contents
@@ -130,5 +130,31 @@ package: | release
 	@ln -s $(OUTNAME).so.$(DEBVERSION) $(DEBFOLDER)/usr/lib/$(OUTNAME).so
 	@$(FPM) -n libgrpcbackend0 --description "Provides a library to help developing a service for mod_grpcbackend." -d "libssl1.0.0" -d "libstdc++6" -d "libgcc1" usr/lib/$(OUTNAME).so.$(DEBVERSION)
 	@$(FPM) -n libgrpcbackend-dev --description "Provides a library to help developing a service for mod_grpcbackend (development headers)" -d "libgrpcbackend0 = $(DEBVERSION)-$(DEBITERATION)" usr/include/grpcbackend usr/lib/$(OUTNAME).a usr/lib/$(OUTNAME).so
+
+install: | package
+	@echo Installing packages
+	sudo dpkg -i libgrpcbackend_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend0_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend-dev_$(DEBVERSION)-$(DEBITERATION)_amd64.deb
+
+
+package-dbg: | debug
+	@rm -rf $(DEBFOLDER) libgrpcbackend_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend0_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend-dev_$(DEBVERSION)-$(DEBITERATION)_amd64.deb
+	@echo Creating package
+	@mkdir $(DEBFOLDER)
+	# Build legacy package with no contents
+	@$(FPM) -n libgrpcbackend --description "libgrpcbackend-dev legacy upgrade package" -d "libgrpcbackend-dev"
+
+	@mkdir -p $(DEBFOLDER)/usr/include/grpcbackend/
+	@mkdir -p $(DEBFOLDER)/usr/lib/
+
+	@find . -name $(DEBFOLDER) -prune -o -name '*.h' -exec cp --parents \{\} $(DEBFOLDER)/usr/include/grpcbackend/ \;
+	@cp debug/shared/$(OUTNAME).so $(DEBFOLDER)/usr/lib/$(OUTNAME).so.$(DEBVERSION)
+	@cp debug/static/$(OUTNAME).a $(DEBFOLDER)/usr/lib/$(OUTNAME).a
+	@ln -s $(OUTNAME).so.$(DEBVERSION) $(DEBFOLDER)/usr/lib/$(OUTNAME).so
+	@$(FPM) -n libgrpcbackend0 --description "Provides a library to help developing a service for mod_grpcbackend." -d "libssl1.0.0" -d "libstdc++6" -d "libgcc1" usr/lib/$(OUTNAME).so.$(DEBVERSION)
+	@$(FPM) -n libgrpcbackend-dev --description "Provides a library to help developing a service for mod_grpcbackend (development headers)" -d "libgrpcbackend0 = $(DEBVERSION)-$(DEBITERATION)" usr/include/grpcbackend usr/lib/$(OUTNAME).a usr/lib/$(OUTNAME).so
+
+install-dbg: | package-dbg
+	@echo Installing packages
+	sudo dpkg -i libgrpcbackend_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend0_$(DEBVERSION)-$(DEBITERATION)_amd64.deb libgrpcbackend-dev_$(DEBVERSION)-$(DEBITERATION)_amd64.deb
 
 -include $(OBJ:%=$(DEP_DIR)/%.d)

@@ -8,7 +8,7 @@ DEP_DIR = .deps
 FLAGS ?= -Wall -Wno-unknown-pragmas -I ../ttl/ttl/include -I ../date/include -I ../grpcbackend_cpp/
 CXXFLAGS ?= -std=c++14 -DPICOJSON_USE_INT64
 CFLAGS ?=
-LINKFLAGS ?= -L../grpcbackend_cpp/debug/static -lgrpcbackend -lprotobuf -lgrpc++ -lboost_system -lboost_filesystem -pthread -ldl -lz
+LINKFLAGS ?= -L../grpcbackend_cpp/debug/static -lgrpcbackend -lprotobuf -lgrpc++ -lgpr -lboost_system -lboost_filesystem -pthread -ldl -lz
 
 OUTNAME := example
 

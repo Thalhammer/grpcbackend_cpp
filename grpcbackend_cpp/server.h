@@ -5,10 +5,15 @@
 #include <atomic>
 #include <vector>
 
-namespace grpc {
+namespace grpc_impl {
 	class Server;
 	class ServerBuilder;
 }
+namespace grpc {
+	typedef ::grpc_impl::Server Server;
+	typedef ::grpc_impl::ServerBuilder ServerBuilder;
+}
+
 
 namespace thalhammer {
 	namespace grpcbackend {

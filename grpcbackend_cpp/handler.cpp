@@ -172,8 +172,8 @@ namespace thalhammer {
 							return;
 						that->req.CopyFrom(msg->request());
 						for (int i = 0; i < that->req.headers_size(); i++) {
-							auto& hdr = that->req.headers()[i];
-							that->req_headers.insert({ ttl::string::to_lower_copy(hdr.key()), hdr.value() });
+							auto hdr = that->req.headers().data()[i];
+							that->req_headers.insert({ ttl::string::to_lower_copy(hdr->key()), hdr->value() });
 						}
 						that->on_connect(std::shared_ptr<const ::thalhammer::http::WebSocketRequest>(msg, &msg->request()));
 					}));
@@ -312,8 +312,8 @@ namespace thalhammer {
 				throw std::runtime_error("Failed to read initial packet");
 			}
 			for (int i = 0; i < _initial_req.request().headers_size(); i++) {
-				auto& hdr = _initial_req.request().headers()[i];
-				_req_headers.insert({ ttl::string::to_lower_copy(hdr.key()), hdr.value() });
+				auto hdr = _initial_req.request().headers().data()[i];
+				_req_headers.insert({ ttl::string::to_lower_copy(hdr->key()), hdr->value() });
 			}
 		}
 
