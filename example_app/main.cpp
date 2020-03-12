@@ -64,6 +64,8 @@ int main(int argc, const char** argv) try {
 
 	mserver.start_server();
 
+	mserver.get_logger()(ttl::loglevel::INFO, "main") << "Init done!";
+
 	std::string line;
 	while (std::getline(std::cin, line)) {
 		if (line == "quit" || line == "shutdown" || line == "q")

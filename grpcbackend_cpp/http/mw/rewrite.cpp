@@ -18,7 +18,7 @@ namespace thalhammer {
                             my_request(request& porig, const std::string& resource)
                                 : request_forward(porig), _resource(resource)
                             { }
-                            virtual const std::string& get_resource() const { return _resource; }
+                            const std::string& get_resource() const override { return _resource; }
                         };
                         my_request m(req, res);
                         next(m, resp);
