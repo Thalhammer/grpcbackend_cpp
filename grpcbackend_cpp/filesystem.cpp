@@ -36,7 +36,7 @@ namespace thalhammer {
 			if(entry.is_file())
 				entry.size = fs::file_size(bpath);
 			
-			return std::move(entry);
+			return entry;
 		}
 
 		std::set<fs_entry> osfilesystem::get_files(const std::string& path) {

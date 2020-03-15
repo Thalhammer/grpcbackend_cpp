@@ -130,7 +130,7 @@ namespace thalhammer {
 				if(done) {
 					this->con_handler.on_disconnect(that);
 					if(this->done.exchange(true)) return;
-					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
+					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) {
 						that->service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"finish (server) called";
 					}));
 				}
@@ -159,7 +159,7 @@ namespace thalhammer {
 			
 			void start() {
 				auto that = this->shared_from_this();
-				service.RequestHandleWebSocket(&ctx, &stream, server_cq, server_cq, new cont_function_t([that](bool ok) mutable {
+				service.RequestHandleWebSocket(&ctx, &stream, server_cq, server_cq, new cont_function_t([that](bool ok) {
 					if (!ok)
 						return;
 					// Add new connection
@@ -167,7 +167,7 @@ namespace thalhammer {
 					con->start();
 					// Read Request data
 					auto msg = std::make_shared<::thalhammer::http::HandleWebSocketRequest>();
-					that->stream.Read(msg.get(), new cont_function_t([that, msg](bool ok) mutable {
+					that->stream.Read(msg.get(), new cont_function_t([that, msg](bool ok) {
 						if (!ok)
 							return;
 						that->req.CopyFrom(msg->request());
@@ -183,7 +183,7 @@ namespace thalhammer {
 			void on_connect(std::shared_ptr<const ::thalhammer::http::WebSocketRequest> req) {
 				auto that = this->shared_from_this();
 				auto msg = std::make_shared<::thalhammer::http::HandleWebSocketRequest>();
-				stream.Read(msg.get(), new cont_function_t([that, msg](bool ok) mutable {
+				stream.Read(msg.get(), new cont_function_t([that, msg](bool ok) {
 					if (!ok)
 						return;
 					that->on_message(std::shared_ptr<const ::thalhammer::http::WebSocketMessage>(msg, &msg->message()));
@@ -203,7 +203,7 @@ namespace thalhammer {
 				if (msg->type() == ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_CLOSE) {
 					this->con_handler.on_disconnect(this->shared_from_this());
 					if(this->done.exchange(true)) return;
-					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) mutable {
+					stream.Finish(::grpc::Status::OK, new cont_function_t([that = this->shared_from_this()](bool ok) {
 						that->service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"finish (client) called";
 					}));
 				}
@@ -211,7 +211,7 @@ namespace thalhammer {
 					this->con_handler.on_message(this->shared_from_this(), msg->type() == ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_BINARY, msg->content());
 					auto that = this->shared_from_this();
 					auto req = std::make_shared<::thalhammer::http::HandleWebSocketRequest>();
-					stream.Read(req.get(), new cont_function_t([that, req](bool ok) mutable {
+					stream.Read(req.get(), new cont_function_t([that, req](bool ok) {
 						if (!ok)
 							return;
 						that->on_message(std::shared_ptr<const ::thalhammer::http::WebSocketMessage>(req, &req->message()));
