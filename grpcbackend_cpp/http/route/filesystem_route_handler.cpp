@@ -44,14 +44,12 @@ namespace thalhammer {
 				void filesystem_route_handler::on_request(connection_ptr con)
 				{
 					con->skip_body([this](connection_ptr con, bool){
-						if (!con->has_attribute<route_params>())
-						{
-							throw std::logic_error("Missing route_params attribute");
-						}
+						
 						auto params = con->get_attribute<route_params>();
-						if (!params->has_param("fs_path")) {
+						if (!params)
+							throw std::logic_error("Missing route_params attribute");
+						if (!params->has_param("fs_path"))
 							throw std::logic_error("Missing fs_path param");
-						}
 						
 						if (fs->exists(path + params->get_param("fs_path"))) {
 							auto p = fs->get_file(path + params->get_param("fs_path"));
@@ -64,15 +62,15 @@ namespace thalhammer {
 								}
 								else {
 									// TODO: Prevent allocation
-									auto att = std::make_shared<fs_params>();
-									att->stream = fs->open_file(p.name);
-									if (att->stream->good()) {
-										att->stream->seekg(0, std::ios::beg);
-										con->set_attribute(att);
+									auto stream = fs->open_file(p.name);
+									if (stream->good()) {
+										stream->seekg(0, std::ios::beg);
 										con->set_status(200, "OK");
 										con->set_header("Content-Length", std::to_string(p.size));
 										con->set_header("Last-Modified", lmodified);
-										con->send_body(*att->stream, [](http::connection_ptr con, bool ok){
+										auto str = stream.release();
+										con->send_body(*str, [str](http::connection_ptr con, bool ok){
+											if(str) delete str;
 											con->end();
 										});
 									}

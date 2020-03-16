@@ -53,7 +53,10 @@ namespace thalhammer {
 				// Add content-type header based on uri file extension
 				router& mime_detector(const std::string& mimefile = "mime.types", pos p = pos::BEGIN);
 				router& mime_detector(std::istream& stream, pos p = pos::BEGIN);
+
+				static void handle_exception(connection_ptr con, std::exception_ptr ptr);
 			private:
+				friend class route_params;
 				struct route_entry;
 				// Routing information
 				struct routing_info;

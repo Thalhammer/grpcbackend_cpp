@@ -1,6 +1,7 @@
 ﻿#include "handler.h"
 #include <queue>
 #include <ttl/logger.h>
+#include "http/router.h"
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -282,7 +283,12 @@ namespace thalhammer {
 				auto that = this->shared_from_this();
 				if(m_read_done) {
 					lck.unlock();
-					return cb(that, false, "");
+					try {
+						if(cb)
+							cb(that, false, "");
+					} catch(...) {
+						http::router::handle_exception(that, std::current_exception());
+					}
 				}
 
 				m_stream.Read(&m_req, new cont_function_t([that, cb](bool ok) mutable {
@@ -290,8 +296,12 @@ namespace thalhammer {
 					if(ok) msg = std::move(*(that->m_req.mutable_request()->mutable_content()));
 					that->m_read_done = !ok;
 					that->m_read_lck.unlock();
-					if(cb)
-						cb(that, ok, std::move(msg));
+					try {
+						if(cb)
+							cb(that, ok, std::move(msg));
+					} catch(...) {
+						http::router::handle_exception(that, std::current_exception());
+					}
 				}));
 				lck.release();
 			}
@@ -300,7 +310,12 @@ namespace thalhammer {
 				if(ok) {
 					con->read_body(std::bind(skip_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb));
 				} else {
-					cb(con, ok);
+					try {
+						if(cb)
+							cb(con, ok);
+					} catch(...) {
+						http::router::handle_exception(con, std::current_exception());
+					}
 				}
 			}
 
@@ -313,7 +328,12 @@ namespace thalhammer {
 				auto that = this->shared_from_this();
 				if(!m_read_done) {
 					lck.unlock();
-					return cb(that, false);
+					try {
+						if(cb)
+							cb(that, false);
+					} catch(...) {
+						http::router::handle_exception(that, std::current_exception());
+					}
 				}
 				if(m_headers_sent) {
 					m_resp.Clear();
@@ -326,8 +346,12 @@ namespace thalhammer {
 				m_stream.Write(m_resp, opts, new cont_function_t([that, cb](bool ok) mutable {
 					that->m_headers_sent = true;
 					that->m_write_lck.unlock();
-					if(cb)
-						cb(that, ok);
+					try {
+						if(cb)
+							cb(that, ok);
+					} catch(...) {
+						http::router::handle_exception(that, std::current_exception());
+					}
 				}));
 				lck.release();
 			}
@@ -361,7 +385,12 @@ namespace thalhammer {
 					std::string buf;
 					void handle_send(std::shared_ptr<connection> con, bool ok) {
 						if(!body || !ok) {
-							if(cb) cb(con, ok);
+							try {
+								if(cb)
+									cb(con, ok);
+							} catch(...) {
+								http::router::handle_exception(con, std::current_exception());
+							}
 							delete this;
 						} else {
 							buf.resize(65536);
@@ -384,14 +413,23 @@ namespace thalhammer {
 				auto that = this->shared_from_this();
 				if(!m_read_done) {
 					lck.unlock();
-					return cb(that, false);
+					try {
+						if(cb)
+							cb(that, false);
+					} catch(...) {
+						http::router::handle_exception(that, std::current_exception());
+					}
 				}
 				if(m_headers_sent && body.empty()) {
 					m_finished = true;
 					m_stream.Finish(grpc::Status::OK, new cont_function_t([that, cb](bool ok) mutable {
 						that->m_write_lck.unlock();
-						if(cb)
-							cb(that, ok);
+						try {
+							if(cb)
+								cb(that, ok);
+						} catch(...) {
+							http::router::handle_exception(that, std::current_exception());
+						}
 					}));
 				} else {
 					m_finished = true;
@@ -399,8 +437,12 @@ namespace thalhammer {
 					m_stream.WriteAndFinish(m_resp, {}, grpc::Status::OK, new cont_function_t([that, cb](bool ok) mutable {
 						that->m_headers_sent = true;
 						that->m_write_lck.unlock();
-						if(cb)
-							cb(that, ok);
+						try {
+							if(cb)
+								cb(that, ok);
+						} catch(...) {
+							http::router::handle_exception(that, std::current_exception());
+						}
 					}));
 				}
 				lck.release();

@@ -1,5 +1,6 @@
 #pragma once
 #include "../attribute.h"
+#include "router.h"
 #include <map>
 #include <string>
 
@@ -8,14 +9,14 @@ namespace thalhammer {
 		namespace http {
 			class route_params : public attribute {
 				std::map<std::string, std::string> params;
-				std::string selected_route;
+				std::shared_ptr<const router::routing_info> info;
+				std::shared_ptr<const router::route_entry> entry;
+				friend class router;
 			public:
 				const std::string& get_selected_route() const;
-				void set_selected_route(const std::string& route);
 
 				bool has_param(const std::string& key) const;
 				const std::string& get_param(const std::string& key) const;
-				void set_param(const std::string& key, const std::string& val);
 			};
 		}
 	}
