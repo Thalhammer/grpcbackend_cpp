@@ -1,5 +1,5 @@
 #include "mime_type.h"
-#include "response_forward.h"
+#include "connection_forward.h"
 #include <magic.h>
 #include <mutex>
 
@@ -60,35 +60,51 @@ namespace thalhammer {
 						throw std::runtime_error("Failed to load mime stream");
 				}
                 // Geerbt über middleware
-                void mime_type::handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) {
-                    auto ext = req.get_parsed_uri().get_extension();
+                void mime_type::on_request(connection_ptr con, std::function<void(connection_ptr)> next) {
+                    auto ext = con->get_parsed_uri().get_extension();
                     if (!ext.empty() && _mime.has_type(ext)) {
-                        class my_response : public response_forward {
+                        class my_connection : public connection_forward {
                             const std::string& mime;
                             bool type_set = false;
                         public:
-                            my_response(response& porig, const std::string& pmime) : response_forward(porig), mime(pmime) {}
+                            my_connection(connection_ptr porig, const std::string& pmime) : connection_forward(porig), mime(pmime) {}
                             void set_header(const std::string& key, const std::string& value, bool replace = false) override {
-                                response_forward::set_header(key, value, replace);
+                                connection_forward::set_header(key, value, replace);
                                 std::string data = key;
                                 std::transform(data.begin(), data.end(), data.begin(), ::tolower);
                                 if (data == "content-type")
                                     type_set = true;
                             }
+                            void send_body(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb, bool can_buffer) override {
+                                set_header();
+                                return connection_forward::send_body(body, cb, can_buffer);
+                            }
+                            void send_body(std::istream& body, std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+                                set_header();
+                                return connection_forward::send_body(body, cb);
+                            }
+                            void end(std::function<void(std::shared_ptr<connection>, bool)> cb = [](std::shared_ptr<connection>, bool){}) override {
+                                set_header();
+                                return connection_forward::end(cb);
+                            }
+                            void end(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+                                set_header();
+                                return connection_forward::end(body, cb);
+                            }
+                            
                             // Try to detect content type before sending headers
-                            std::ostream& get_ostream() override {
+                            void set_header() {
                                 if (!type_set) {
-                                    response_forward::set_header("Content-Type", mime);
+                                    connection_forward::set_header("Content-Type", mime);
                                     type_set = true;
                                 }
-                                return response_forward::get_ostream();
                             }
                         };
-                        my_response res(resp, _mime.get_type(ext));
-                        next(req, res);
+                        auto m = std::make_shared<my_connection>(con, _mime.get_type(ext));
+                        next(m);
                     }
                     else {
-                        next(req, resp);
+                        next(con);
                     }
                 }
 			}

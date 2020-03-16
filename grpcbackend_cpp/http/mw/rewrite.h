@@ -6,11 +6,11 @@ namespace thalhammer {
 		namespace http {
 			namespace mw {
 				class rewrite : public middleware {
-					std::function<std::string(request&, response&)> func;
+					std::function<std::string(connection_ptr)> func;
 				public:
-					explicit rewrite(std::function<std::string(request&, response&)> f);
+					explicit rewrite(std::function<std::string(connection_ptr)> f);
 					// Geerbt über middleware
-					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
+					virtual void on_request(connection_ptr, std::function<void(connection_ptr)> next) override;
 				};
 			}
 		}

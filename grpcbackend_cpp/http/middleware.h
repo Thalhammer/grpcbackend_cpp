@@ -1,6 +1,5 @@
 #pragma once
-#include "request.h"
-#include "response.h"
+#include "connection.h"
 #include <functional>
 
 namespace thalhammer {
@@ -10,7 +9,7 @@ namespace thalhammer {
 			public:
 				typedef std::shared_ptr<middleware> ptr;
 				virtual ~middleware() {}
-				virtual void handle_request(request& req, response& resp, std::function<void(request&, response&)>& next) = 0;
+				virtual void on_request(connection_ptr con, std::function<void(connection_ptr)> next) = 0;
 			};
 			using middleware_ptr = middleware::ptr;
 		}

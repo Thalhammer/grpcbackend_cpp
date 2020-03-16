@@ -19,8 +19,8 @@ namespace thalhammer {
 					{}
 					virtual std::set<std::string> get_methods() override { return methods; }
 					virtual std::set<std::string> get_routes() override { return routes; }
-					virtual void handle_request(request& req, response& resp) override {
-						handler(req, resp);
+					virtual void on_request(connection_ptr con) override {
+						handler(con);
 					}
 				};
 			}

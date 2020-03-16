@@ -27,6 +27,7 @@ namespace thalhammer {
 		server::server(options opts)
 			: log(opts.log), exit(false)
 		{
+			if(!log) log = std::make_shared<ttl::streamlogger>(std::cout);
 			if (opts.num_worker_threads == 0) {
 				auto env = getenv("GRPCBACKEND_NUM_WORKERS");
 				if (env) {
@@ -40,12 +41,12 @@ namespace thalhammer {
 			}
 			hub = std::make_unique<websocket::hub>(*log);
 			router = std::make_unique<http::router>();
-			http_service = std::make_unique<handler>(*router, *hub, *log);
+			http_service = std::make_unique<handler>(*hub, *router, *log);
 			builder = std::make_unique<::grpc::ServerBuilder>();
 			builder->RegisterService(http_service.get());
 			get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Using " << opts.num_worker_threads << " worker threads";
 			for (size_t i = 0; i < opts.num_worker_threads; i++) {
-				auto cq = builder->AddCompletionQueue(false);
+				auto cq = builder->AddCompletionQueue(true);
 				cqs.push_back({ std::thread(), std::move(cq) });
 			}
 		}
@@ -78,9 +79,11 @@ namespace thalhammer {
 		void server::shutdown_server(std::chrono::milliseconds max_wait)
 		{
 			if(!exit.exchange(true)) {
+				get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Server shutting down";
 				hub->close_all();
 				if(mserver)
-					mserver->Shutdown(std::chrono::system_clock::now() + max_wait);
+					//mserver->Shutdown(std::chrono::system_clock::now() + max_wait);
+					mserver->Shutdown();
 				for (auto& cq : cqs) {
 					if (cq.cq)
 						cq.cq->Shutdown();
@@ -91,6 +94,7 @@ namespace thalhammer {
 				http_service.reset();
 				hub.reset();
 				router.reset();
+				get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Server shutdown done";
 			}
 		}
 	}

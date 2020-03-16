@@ -13,7 +13,7 @@ namespace thalhammer {
 	namespace grpcbackend {
 		struct ifilesystem;
 		namespace http {
-			class router {
+			class router : public con_handler {
 			public:
 				enum class pos {
 					BEGIN=0,
@@ -21,8 +21,8 @@ namespace thalhammer {
 					LAST=20
 				};
 
-				typedef std::function<void(request&, response&)> notfound_handler_t;
-				typedef std::function<void(request&, response&, const std::string&, std::exception_ptr)> error_handler_t;
+				typedef std::function<void(connection_ptr)> notfound_handler_t;
+				typedef std::function<void(connection_ptr, const std::string&, std::exception_ptr)> error_handler_t;
 
 				router();
 				router& route(route_handler_ptr handler, std::vector<middleware_ptr> middleware = {});
@@ -31,7 +31,7 @@ namespace thalhammer {
 				router& notfound(notfound_handler_t fn);
 				router& error(error_handler_t fn);
 
-				void handle_request(request& req, response& resp);
+				void on_request(connection_ptr con);
 
 				// Shortcut methods for default middleware/routehandlers
 				// Add a function handler
@@ -40,7 +40,7 @@ namespace thalhammer {
 					return route(std::make_shared<route::function_route_handler<T>>(handler, uri, method), middleware);
 				}
 				// Add a rewrite middleware
-				router& rewrite(std::function<std::string(request&, response&)> fn, pos p = pos::DEFAULT);
+				router& rewrite(std::function<std::string(connection_ptr)> fn, pos p = pos::DEFAULT);
 				router& rewrite(std::regex reg, std::string fmt, pos p = pos::DEFAULT);
 				router& rewrite(const std::string& reg, std::string fmt, pos p = pos::DEFAULT) {
 					return this->rewrite(std::regex(reg), fmt, p);
@@ -54,6 +54,7 @@ namespace thalhammer {
 				router& mime_detector(const std::string& mimefile = "mime.types", pos p = pos::BEGIN);
 				router& mime_detector(std::istream& stream, pos p = pos::BEGIN);
 			private:
+				struct route_entry;
 				// Routing information
 				struct routing_info;
 				// Route matching information
@@ -62,9 +63,11 @@ namespace thalhammer {
 				// Worker threads do not need to lock it because we read and write the shared_ptr using atomic operations
 				std::mutex _routing_update_mtx;
 				std::shared_ptr<routing_info> _routing;
-				static void do_routing(request& req, response& resp, std::shared_ptr<const routing_info> info);
+				static void do_routing(http::connection_ptr con, std::shared_ptr<const routing_info> info);
 				static std::vector<route_match_info> parse_route(const std::string& uri);
 				static std::string build_route_regex(const std::vector<route_match_info>& info, std::vector<std::string>& keys);
+				static void mw_helper_global(connection_ptr con, std::shared_ptr<const routing_info> info, std::multimap<pos, middleware_ptr>::const_iterator it);
+				static void mw_helper_local(connection_ptr con, std::shared_ptr<const route_entry> info, std::vector<middleware_ptr>::const_iterator it);
 			};
 		}
 	}

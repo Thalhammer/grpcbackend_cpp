@@ -7,14 +7,13 @@
 #include "route/filesystem_route_handler.h"
 #include "mw/logger.h"
 #include "mw/mime_type.h"
-#include "http_exception.h"
 
 using namespace std::string_literals;
 
 namespace thalhammer {
 	namespace grpcbackend {
 		namespace http {
-			struct route_entry {
+			struct router::route_entry {
 				std::regex regex;
 				std::vector<std::string> keys;
 				std::vector<middleware_ptr> middleware;
@@ -122,41 +121,49 @@ namespace thalhammer {
 				return *this;
 			}
 
-			void router::handle_request(request & req, response & resp)
-			{
-				std::shared_ptr<const routing_info> info = std::atomic_load(&_routing);
-				if (!info->middleware.empty()) {
-					auto it = info->middleware.cbegin();
-					auto end = info->middleware.cend();
-
-					std::function<void(request&, response&)> next = [&it, end, this, &next, info](request& req, response& resp) -> void {
-						if (it != end) {
-							auto mw = it->second;
-							it++;
-							mw->handle_request(req, resp, next);
-						}
-						else {
-							this->do_routing(req, resp, info);
-						}
-					};
-
-					next(req, resp);
+			void router::mw_helper_global(connection_ptr con, std::shared_ptr<const routing_info> info, std::multimap<pos, middleware_ptr>::const_iterator it) {
+				if (it != info->middleware.cend()) {
+					auto mw = it->second;
+					it++;
+					mw->on_request(con, std::bind(&router::mw_helper_global, std::placeholders::_1, info, it));
 				}
 				else {
-					do_routing(req, resp, info);
+					do_routing(con, info);
 				}
 			}
 
-			router& router::rewrite(std::function<std::string(request&, response&)> fn, pos p)
+			void router::mw_helper_local(connection_ptr con, std::shared_ptr<const route_entry> entry, std::vector<middleware_ptr>::const_iterator it) {
+				if (it != entry->middleware.cend()) {
+					auto mw = *it;
+					it++;
+					mw->on_request(con, std::bind(&router::mw_helper_local, std::placeholders::_1, entry, it));
+				}
+				else {
+					entry->handler->on_request(con);
+				}
+			}
+
+			void router::on_request(connection_ptr con)
+			{
+				std::shared_ptr<const routing_info> info = std::atomic_load(&_routing);
+				if (!info->middleware.empty()) {
+					mw_helper_global(con, info, info->middleware.cbegin());
+				}
+				else {
+					do_routing(con, info);
+				}
+			}
+
+			router& router::rewrite(std::function<std::string(connection_ptr con)> fn, pos p)
 			{
 				return this->use(std::make_shared<mw::rewrite>(fn), p);
 			}
 
 			router& router::rewrite(std::regex reg, std::string fmt, pos p)
 			{
-				return this->rewrite([reg, fmt](request& req, response&) -> std::string {
+				return this->rewrite([reg, fmt](connection_ptr con) -> std::string {
 					std::smatch match;
-					if(std::regex_match(req.get_resource(), match, reg))
+					if(std::regex_match(con->get_resource(), match, reg))
 					{
 						return match.format(fmt);
 					}
@@ -188,17 +195,17 @@ namespace thalhammer {
 				return this->use(std::make_shared<http::mw::mime_type>(stream), p);
 			}
 
-			void router::do_routing(request & req, response & resp, std::shared_ptr<const routing_info> info)
+			void router::do_routing(connection_ptr con, std::shared_ptr<const routing_info> info)
 			{
-				auto& method = req.get_method();
-				auto& uri = req.get_parsed_uri().get_path();
+				auto& method = con->get_method();
+				auto& uri = con->get_parsed_uri().get_path();
 
 				auto& map = info->routes;
 
 				if (map.count(method) == 0) {
 					if(info->notfound_handler)
-						info->notfound_handler(req, resp);
-					else resp.set_status(404);
+						info->notfound_handler(con);
+					else con->set_status(404);
 					return;
 				}
 				auto& entries = map.at(method);
@@ -208,17 +215,17 @@ namespace thalhammer {
 					if (std::regex_match(uri, matches, e->regex)) {
 						entry = e;
 						std::shared_ptr<route_params> params;
-						if (req.has_attribute<route_params>()) params = req.get_attribute<route_params>();
+						if (con->has_attribute<route_params>()) params = con->get_attribute<route_params>();
 						else {
 							params = std::make_shared<route_params>();
-							req.set_attribute(params);
+							con->set_attribute(params);
 						}
 
 						if (matches.size() != e->keys.size() + 1) {
 							if (info->debug_mode)
-								resp.set_header("X-Exception", "Regex size check failed");
-							if(info->error_handler) info->error_handler(req, resp, "Internal error", nullptr);
-							else resp.set_status(500, "Internal error");
+								con->set_header("X-Exception", "Regex size check failed");
+							if(info->error_handler) info->error_handler(con, "Internal error", nullptr);
+							else con->set_status(500, "Internal error");
 							return;
 						}
 
@@ -232,60 +239,48 @@ namespace thalhammer {
 
 				if (!entry) {
 					if(info->notfound_handler)
-						info->notfound_handler(req, resp);
-					else resp.set_status(404);
+						info->notfound_handler(con);
+					else con->set_status(404);
 					return;
 				}
 
 				try {
 					if (!entry->middleware.empty()) {
-						auto it = entry->middleware.cbegin();
-						auto end = entry->middleware.cend();
-
-						std::function<void(request&, response&)> next = [it, end, &next, entry](request& req, response& resp) mutable -> void {
-							if (it != end) {
-								auto mw = *it;
-								it++;
-								mw->handle_request(req, resp, next);
-							}
-							else {
-								entry->handler->handle_request(req, resp);
-							}
-						};
-
-						next(req, resp);
+						// Execute middleware chain
+						mw_helper_local(con, entry, entry->middleware.cbegin());
 					}
 					else {
-						entry->handler->handle_request(req, resp);
+						entry->handler->on_request(con);
 					}
 				}
-				catch (const http_exception& ex) {
+				/*catch (const http_exception& ex) {
 					if(ex.get_code() == 404) {
 						if(info->notfound_handler)
-							info->notfound_handler(req, resp);
-						else resp.set_status(404);
+							info->notfound_handler(con);
+						else con->set_status(404);
 					} else if(ex.get_code() == 500) {
-						if(info->error_handler) info->error_handler(req, resp, ex.get_message(), std::current_exception());
-						else resp.set_status(500, ex.get_message());
+						if(info->error_handler) info->error_handler(con, ex.get_message(), std::current_exception());
+						else con->set_status(500, ex.get_message());
 					} else {
-						resp.set_status(ex.get_code(), ex.get_message());
+						con->set_status(ex.get_code(), ex.get_message());
 					}
-				}
+				}*/
 				catch (...) {
 					if (info->debug_mode) {
 						try {
 							throw;
 						}
 						catch (std::exception& e) {
-							resp.set_header("X-Exception", "std::exception("s + e.what() + ")");
+							con->set_header("X-Exception", "std::exception("s + e.what() + ")");
 						}
 						catch (...) {
-							resp.set_header("X-Exception", "unknown");
+							con->set_header("X-Exception", "unknown");
 						}
 					}
-					if(info->error_handler) info->error_handler(req, resp, "Internal error", std::current_exception());
-					else resp.set_status(500, "Internal error");
+					if(info->error_handler) info->error_handler(con, "Internal error", std::current_exception());
+					else con->set_status(500, "Internal error");
 				}
+				if(!con->is_finished()) con->end();
 			}
 
 			struct router::route_match_info {

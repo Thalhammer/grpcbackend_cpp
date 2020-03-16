@@ -13,7 +13,7 @@ namespace thalhammer {
 				public:
 					logger(ttl::logger& log, ttl::loglevel lvl = ttl::loglevel::DEBUG, ttl::logmodule module = ttl::logmodule("http"));
 					// Geerbt über middleware
-					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
+					virtual void on_request(connection_ptr con, std::function<void(connection_ptr)> next) override;
 				};
 			}
 		}

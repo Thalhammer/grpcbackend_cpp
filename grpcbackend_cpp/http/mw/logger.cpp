@@ -8,14 +8,14 @@ namespace thalhammer {
                     : _log(log), _lvl(lvl), _module(module)
                 {}
 
-				void logger::handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) {
+				void logger::on_request(connection_ptr con, std::function<void(connection_ptr)> next) {
 					_log(_lvl, _module.name)
-						<< req.get_method() << " "
-						<< req.get_resource() << " "
-						<< req.get_protocol() << " "
-						<< (req.is_encrypted() ? "tls" : "plain") << " "
-						<< req.get_client_ip() << ":" << req.get_client_port();
-					next(req, resp);
+						<< con->get_method() << " "
+						<< con->get_resource() << " "
+						<< con->get_protocol() << " "
+						<< (con->is_encrypted() ? "tls" : "plain") << " "
+						<< con->get_client_ip() << ":" << con->get_client_port();
+					next(con);
 				}
 			}
 		}

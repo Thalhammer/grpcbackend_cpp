@@ -12,7 +12,7 @@ namespace thalhammer {
 					explicit mime_type(const std::string& filename = "mime.types");
 					explicit mime_type(std::istream& type_stream);
 					// Geerbt über middleware
-					virtual void handle_request(request & req, response & resp, std::function<void(request&, response&)>& next) override;
+					virtual void on_request(connection_ptr con, std::function<void(connection_ptr)> next) override;
 				};
 			}
 

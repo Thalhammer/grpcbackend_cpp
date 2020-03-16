@@ -4,103 +4,8 @@
 
 namespace thalhammer {
 	namespace grpcbackend {
-		namespace {
-		class handler_streambuf : public std::streambuf {
-			::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* _stream;
-			::thalhammer::http::HandleRequest req;
-			std::string _out_buf;
-		public:
-			explicit handler_streambuf(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
-				:_stream(stream), _out_buf(4096, 0x00)
-			{
-				setg(nullptr, nullptr, nullptr);
-				setp(&_out_buf[0], &_out_buf[_out_buf.size()]);
-			}
-
-			~handler_streambuf() {
-				this->sync();
-			}
-
-			virtual std::streambuf::int_type underflow() override
-			{
-				if (_stream->Read(&req)) {
-					auto* str = req.mutable_request()->mutable_content();
-					setg((char*)str->data(), (char*)str->data(), (char*)str->data() + str->size());
-					return traits_type::to_int_type(*gptr());
-				}
-				else {
-					return traits_type::eof();
-				}
-			}
-
-			virtual std::streambuf::int_type overflow(std::streambuf::int_type value)
-			{
-				int write = pptr() - pbase();
-				if (write)
-				{
-					auto buf_size = _out_buf.size();
-					_out_buf.resize(write);
-					::thalhammer::http::HandleResponse resp;
-					resp.mutable_response()->set_allocated_content(&_out_buf);
-					if (!_stream->Write(resp)) {
-						resp.mutable_response()->release_content();
-						return traits_type::eof();
-					}
-					// Prevent destructor from deleting _out_buf
-					resp.mutable_response()->release_content();
-					_out_buf.resize(buf_size);
-				}
-
-				setp(&_out_buf[0], &_out_buf[_out_buf.size()]);
-				if (!traits_type::eq_int_type(value, traits_type::eof())) sputc(value);
-				return traits_type::not_eof(value);
-			}
-
-			virtual int sync()
-			{
-				std::streambuf::int_type result = this->overflow(traits_type::eof());
-				return traits_type::eq_int_type(result, traits_type::eof()) ? -1 : 0;
-			}
-
-			::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* get_stream()
-			{
-				return _stream;
-			}
-		};
-
-		class handler_interface : public thalhammer::grpcbackend::http::request, public thalhammer::grpcbackend::http::response {
-			::thalhammer::http::HandleRequest _initial_req;
-			std::multimap<std::string, std::string> _req_headers;
-			::thalhammer::http::HandleResponse _initial_resp;
-			bool _initial_sent;
-			handler_streambuf _streambuf;
-			std::istream _istream;
-			std::ostream _ostream;
-		public:
-			explicit handler_interface(::grpc::ServerReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream);
-
-			void send_headers();
-
-			// Geerbt über request
-			virtual const std::string & get_client_ip() const override { return _initial_req.client().remote_ip(); }
-			virtual uint16_t get_client_port() const override { return _initial_req.client().remote_port(); }
-			virtual const std::string & get_server_ip() const override { return _initial_req.client().local_ip(); }
-			virtual uint16_t get_server_port() const override { return _initial_req.client().local_port(); }
-			virtual bool is_encrypted() const override { return _initial_req.client().encrypted(); }
-			virtual const std::string & get_method() const override { return _initial_req.request().method(); }
-			virtual const std::string & get_resource() const override { return _initial_req.request().resource(); }
-			virtual const std::string & get_protocol() const override { return _initial_req.request().protocol(); }
-			virtual const std::multimap<std::string, std::string>& get_headers() const override { return _req_headers; }
-			virtual std::istream & get_istream() override { return _istream; }
-
-			// Geerbt über response
-			virtual void set_status(int code, const std::string & message = "") override;
-			virtual void set_header(const std::string & key, const std::string & value, bool replace = false) override;
-			virtual std::ostream & get_ostream() override;
-		};
-		}
-
 		typedef std::function<void(bool)> cont_function_t;
+
 		class ws_connection : public websocket::connection, public std::enable_shared_from_this<ws_connection> {
 			handler& service;
 			websocket::con_handler& con_handler;
@@ -259,8 +164,254 @@ namespace thalhammer {
 			}
 		};
 
-		handler::handler(http::router & route, websocket::con_handler& ws_handler, ttl::logger& logger)
-			:_route(route), _ws_handler(ws_handler), _logger(logger)
+		class http_connection : public http::connection, public std::enable_shared_from_this<http_connection> {
+			std::map<std::type_index, std::shared_ptr<attribute>> m_attributes;
+
+			handler& m_service;
+			http::con_handler& m_handler;
+			::grpc::ServerContext m_ctx;
+			::grpc::ServerAsyncReaderWriter< ::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest> m_stream;
+			::grpc::ServerCompletionQueue* m_server_cq;
+
+			::thalhammer::http::HandleRequest m_initial_req;
+			::thalhammer::http::HandleRequest m_req;
+			::thalhammer::http::HandleResponse m_resp;
+			std::multimap<std::string, std::string> req_headers;
+
+			std::mutex m_read_lck;
+			std::mutex m_write_lck;
+			std::atomic<bool> m_read_done;
+			std::atomic<bool> m_headers_sent;
+			std::atomic<bool> m_finished;
+			std::atomic<bool> m_started;
+		public:
+			http_connection(::grpc::ServerCompletionQueue* cq, handler& pservice, http::con_handler& handler)
+				: m_service(pservice), m_handler(handler), m_stream(&m_ctx), m_server_cq(cq), m_read_done(false), m_headers_sent(false), m_finished(false), m_started(false)
+			{
+				m_service.get_logger()(ttl::loglevel::TRACE, "http") <<"con create 0x" << std::hex << this;
+			}
+
+			virtual ~http_connection() {
+				if(m_started) {
+					if(!m_read_done)
+						m_service.get_logger()(ttl::loglevel::WARN, "http") << "con dropped without reading content 0x" << std::hex << this;
+					if(!m_headers_sent)
+						m_service.get_logger()(ttl::loglevel::WARN, "http") << "con dropped without sending headers 0x" << std::hex << this;
+					if(!m_finished)
+						m_service.get_logger()(ttl::loglevel::WARN, "http") << "con dropped without finishing 0x" << std::hex << this;
+				}
+				m_service.get_logger()(ttl::loglevel::TRACE, "http") << "con destroy 0x" << std::hex << this;
+			}
+			
+			void start() {
+				auto that = this->shared_from_this();
+				m_service.RequestHandle(&m_ctx, &m_stream, m_server_cq, m_server_cq, new cont_function_t([that](bool ok) {
+					if (!ok)
+						return;
+					that->m_started = true;
+					// Add new connection
+					auto con = std::make_shared<http_connection>(that->m_server_cq, that->m_service, that->m_handler);
+					con->start();
+					// Read Request data
+					that->m_stream.Read(&that->m_initial_req, new cont_function_t([that](bool ok) {
+						if (!ok)
+							return;
+						for (int i = 0; i < that->m_initial_req.request().headers_size(); i++) {
+							auto hdr = that->m_initial_req.request().headers().data()[i];
+							that->req_headers.insert({ ttl::string::to_lower_copy(hdr->key()), hdr->value() });
+						}
+						try {
+							that->m_handler.on_request(that);
+						} catch(const std::exception& e) {
+							that->m_service.get_logger()(ttl::loglevel::ERR, "http") <<"exception processing http request: " << e.what();
+						}
+					}));
+				}));
+			}
+
+			// Clientinfo
+			virtual const std::string& get_client_ip() const override { return m_initial_req.client().remote_ip(); }
+			virtual uint16_t get_client_port() const override { return m_initial_req.client().remote_port(); }
+
+			// Serverinfo
+			virtual const std::string& get_server_ip() const override { return m_initial_req.client().local_ip(); }
+			virtual uint16_t get_server_port() const override { return m_initial_req.client().local_port(); }
+			virtual bool is_encrypted() const override { return m_initial_req.client().encrypted(); }
+
+			// Request info
+			virtual const std::string& get_method() const override { return m_initial_req.request().method(); }
+			virtual const std::string& get_resource() const override { return m_initial_req.request().resource(); }
+			virtual const std::string& get_protocol() const override { return m_initial_req.request().protocol(); }
+			virtual const std::multimap<std::string, std::string>& get_headers() const override { return req_headers; }
+
+			// Only valid until first write
+			virtual void set_status(int code, const std::string& message = "") override {
+				m_resp.mutable_response()->set_status_code(code);
+				if(!message.empty())
+					m_resp.mutable_response()->set_status_message(message);
+			}
+
+			virtual void set_header(const std::string& pkey, const std::string& value, bool replace = false) override {
+				auto key = ttl::string::to_lower_copy(pkey);
+				auto hdrs = m_resp.mutable_response()->mutable_headers();
+				if(replace) {
+					for(auto& e : *hdrs) {
+						if(e.key() == key) {
+							e.set_value(value);
+							return;
+						}
+					}
+				}
+				auto hdr = hdrs->Add();
+				hdr->set_key(key);
+				hdr->set_value(value);
+			}
+
+			virtual bool is_headers_done() const override {
+				return m_headers_sent;
+			}
+			virtual bool is_body_read() const override {
+				return m_read_done;
+			}
+			virtual bool is_finished() const override {
+				return m_finished;
+			}
+
+			virtual void read_body(std::function<void(http::connection_ptr, bool, std::string)> cb) override {
+				std::unique_lock<std::mutex> lck(m_read_lck);
+				auto that = this->shared_from_this();
+				if(m_read_done) {
+					lck.unlock();
+					return cb(that, false, "");
+				}
+
+				m_stream.Read(&m_req, new cont_function_t([that, cb](bool ok) mutable {
+					std::string msg;
+					if(ok) msg = std::move(*(that->m_req.mutable_request()->mutable_content()));
+					that->m_read_done = !ok;
+					that->m_read_lck.unlock();
+					if(cb)
+						cb(that, ok, std::move(msg));
+				}));
+				lck.release();
+			}
+
+			static void skip_helper(std::shared_ptr<connection> con, bool ok, std::string, std::function<void(std::shared_ptr<connection>, bool)> cb) {
+				if(ok) {
+					con->read_body(std::bind(skip_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb));
+				} else {
+					cb(con, ok);
+				}
+			}
+
+			virtual void skip_body(std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+				this->read_body(std::bind(skip_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb));
+			}
+
+			virtual void send_body(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb, bool can_buffer) override {
+				std::unique_lock<std::mutex> lck(m_write_lck);
+				auto that = this->shared_from_this();
+				if(!m_read_done) {
+					lck.unlock();
+					return cb(that, false);
+				}
+				if(m_headers_sent) {
+					m_resp.Clear();
+				}
+				m_resp.mutable_response()->set_content(std::move(body));
+
+				grpc::WriteOptions opts;
+				if(can_buffer && m_headers_sent) opts.set_buffer_hint();
+
+				m_stream.Write(m_resp, opts, new cont_function_t([that, cb](bool ok) mutable {
+					that->m_headers_sent = true;
+					that->m_write_lck.unlock();
+					if(cb)
+						cb(that, ok);
+				}));
+				lck.release();
+			}
+
+			/**
+			 * Note on buffer size:
+			 * More experimentation is needed:
+			 * * Filesize impact
+			 * * Concurrency
+			 * Without buffer_hint:
+			 * 65536=> 780MB/s
+			 * 32768=> 600MB/s
+			 * 16384=> 380MB/s
+			 * 8192 => 170MB/s
+			 * 4096 => 140MB/s
+			 * 2048 => 76MB/s
+			 * 
+			 * With buffer_hint:
+			 * 65536=> 750MB/s
+			 * 32768=> 680MB/s
+			 * 16384=> 520MB/s
+			 * 8129 => 370MB/s
+			 * 4096 => 245MB/s
+			 * 2048 => 157MB/s
+			 */
+
+			virtual void send_body(std::istream& body, std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+				struct helper {
+					std::istream& body;
+					std::function<void(std::shared_ptr<connection>, bool)> cb;
+					std::string buf;
+					void handle_send(std::shared_ptr<connection> con, bool ok) {
+						if(!body || !ok) {
+							if(cb) cb(con, ok);
+							delete this;
+						} else {
+							buf.resize(65536);
+							auto r = body.read(const_cast<char*>(buf.data()), buf.size()).gcount();
+							buf.resize(r);
+							con->send_body(buf, std::bind(&helper::handle_send, this, std::placeholders::_1, std::placeholders::_2), false);
+						}
+					}
+				};
+				auto h = new helper{body, cb};
+				h->handle_send(this->shared_from_this(), true);
+			}
+
+			virtual void end(std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+				return end("", cb);
+			}
+
+			virtual void end(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb) override {
+				std::unique_lock<std::mutex> lck(m_write_lck);
+				auto that = this->shared_from_this();
+				if(!m_read_done) {
+					lck.unlock();
+					return cb(that, false);
+				}
+				if(m_headers_sent && body.empty()) {
+					m_finished = true;
+					m_stream.Finish(grpc::Status::OK, new cont_function_t([that, cb](bool ok) mutable {
+						that->m_write_lck.unlock();
+						if(cb)
+							cb(that, ok);
+					}));
+				} else {
+					m_finished = true;
+					m_resp.mutable_response()->set_content(std::move(body));
+					m_stream.WriteAndFinish(m_resp, {}, grpc::Status::OK, new cont_function_t([that, cb](bool ok) mutable {
+						that->m_headers_sent = true;
+						that->m_write_lck.unlock();
+						if(cb)
+							cb(that, ok);
+					}));
+				}
+				lck.release();
+			}
+
+			virtual std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() override { return m_attributes; }
+			virtual const std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() const override { return m_attributes; }
+		};
+
+		handler::handler(websocket::con_handler& ws_handler, http::con_handler& http_handler, ttl::logger& logger)
+			:_ws_handler(ws_handler), _http_handler(http_handler), _logger(logger)
 		{
 		}
 
@@ -274,6 +425,10 @@ namespace thalhammer {
 				auto con = std::make_shared<ws_connection>(cq, *this, _ws_handler);
 				con->start();
 			}
+			{
+				auto con = std::make_shared<http_connection>(cq, *this, _http_handler);
+				con->start();
+			}
 			while (true) {
 				void* tag;
 				bool ok = false;
@@ -284,80 +439,12 @@ namespace thalhammer {
 						if ((*cont_fn))
 							(*cont_fn)(ok);
 					}
-					catch (const std::exception& e) {}
+					catch (const std::exception& e) {
+						get_logger()(ttl::loglevel::TRACE, "handler") <<"exception processing callback: " << e.what();
+					}
 					delete cont_fn;
 				}
 			}
-		}
-
-		::grpc::Status handler::Handle(::grpc::ServerContext * context, ::grpc::ServerReaderWriter<::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
-		{
-			try {
-				handler_interface iface(stream);
-				_route.handle_request(iface, iface);
-				// Send headers if ostream was not requested
-				iface.send_headers();
-				return ::grpc::Status::OK;
-			}
-			catch (const std::exception& e) {
-				return ::grpc::Status(::grpc::StatusCode::INTERNAL, e.what());
-			}
-		}
-
-		handler_interface::handler_interface(::grpc::ServerReaderWriter<::thalhammer::http::HandleResponse, ::thalhammer::http::HandleRequest>* stream)
-			: _initial_sent(false), _streambuf(stream), _istream(&_streambuf), _ostream(&_streambuf)
-		{
-			this->set_status(200);
-			if (!stream->Read(&_initial_req)) {
-				throw std::runtime_error("Failed to read initial packet");
-			}
-			for (int i = 0; i < _initial_req.request().headers_size(); i++) {
-				auto hdr = _initial_req.request().headers().data()[i];
-				_req_headers.insert({ ttl::string::to_lower_copy(hdr->key()), hdr->value() });
-			}
-		}
-
-		void handler_interface::send_headers()
-		{
-			if (!_initial_sent) {
-				_initial_sent = true;
-				if (!_streambuf.get_stream()->Write(_initial_resp)) {
-					throw std::runtime_error("Failed to send headers");
-				}
-			}
-		}
-
-		void handler_interface::set_status(int code, const std::string & message)
-		{
-			_initial_resp.mutable_response()->set_status_code(code);
-			if (!message.empty())
-				_initial_resp.mutable_response()->set_status_message(message);
-		}
-
-		void handler_interface::set_header(const std::string & pkey, const std::string & value, bool replace)
-		{
-			auto key = ttl::string::to_lower_copy(pkey);
-			if (replace) {
-				for (int i = 0; i < _initial_resp.response().headers_size(); i++)
-				{
-					auto* hdr = _initial_resp.mutable_response()->mutable_headers()->Mutable(i);
-					if (hdr->key() == key)
-					{
-						hdr->set_value(value);
-						return;
-					}
-				}
-			}
-			auto hdr = _initial_resp.mutable_response()->add_headers();
-			hdr->set_key(key);
-			hdr->set_value(value);
-		}
-
-		std::ostream & handler_interface::get_ostream()
-		{
-			// Send initial header response
-			send_headers();
-			return _ostream;
 		}
 	}
 }
