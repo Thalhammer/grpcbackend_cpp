@@ -64,7 +64,6 @@ namespace thalhammer {
 									// TODO: Prevent allocation
 									auto stream = fs->open_file(p.name);
 									if (stream->good()) {
-										stream->seekg(0, std::ios::beg);
 										con->set_status(200, "OK");
 										con->set_header("Content-Length", std::to_string(p.size));
 										con->set_header("Last-Modified", lmodified);
