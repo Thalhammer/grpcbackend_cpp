@@ -82,8 +82,7 @@ namespace thalhammer {
 				get_logger()(ttl::loglevel::TRACE, "grpc_server") << "Server shutting down";
 				hub->close_all();
 				if(mserver)
-					//mserver->Shutdown(std::chrono::system_clock::now() + max_wait);
-					mserver->Shutdown();
+					mserver->Shutdown(std::chrono::system_clock::now() + max_wait);
 				for (auto& cq : cqs) {
 					if (cq.cq)
 						cq.cq->Shutdown();

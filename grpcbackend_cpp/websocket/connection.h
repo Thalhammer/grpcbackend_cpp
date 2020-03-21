@@ -4,6 +4,7 @@
 #include <map>
 #include <typeindex>
 #include <string>
+#include <functional>
 #include "../uri.h"
 #include <ttl/string_util.h>
 
@@ -17,6 +18,7 @@ namespace thalhammer {
 			public:
 				virtual ~connection() {}
 				virtual void send_message(bool bin, const std::string& msg) = 0;
+				virtual void send_message(bool bin, const std::string& msg, std::function<void()> cb) = 0;
 				virtual void close() = 0;
 
 				// Clientinfo

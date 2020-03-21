@@ -42,11 +42,12 @@ namespace thalhammer {
 				virtual bool is_finished() const = 0;
 
 				virtual void read_body(std::function<void(std::shared_ptr<connection>, bool, std::string)> cb) = 0;
+				virtual void read_body_full(std::function<void(std::shared_ptr<connection>, bool, std::string)> cb) = 0;
 				virtual void skip_body(std::function<void(std::shared_ptr<connection>, bool)> cb) = 0;
 				virtual void send_body(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb, bool can_buffer=false) = 0;
 				virtual void send_body(std::istream& body, std::function<void(std::shared_ptr<connection>, bool)> cb) = 0;
 				virtual void end(std::function<void(std::shared_ptr<connection>, bool)> cb = [](std::shared_ptr<connection>, bool){}) = 0;
-				virtual void end(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb) = 0;
+				virtual void end(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb = [](std::shared_ptr<connection>, bool){}) = 0;
 
 				/** Helper methods **/
 

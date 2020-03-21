@@ -42,6 +42,7 @@ namespace thalhammer {
 				}
 
 				virtual void read_body(std::function<void(std::shared_ptr<connection>, bool, std::string)> cb) override { return orig->read_body(cb); }
+				virtual void read_body_full(std::function<void(std::shared_ptr<connection>, bool, std::string)> cb) override { return orig->read_body_full(cb); }
 				virtual void skip_body(std::function<void(std::shared_ptr<connection>, bool)> cb) override { return orig->skip_body(cb); }
 				virtual void send_body(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb, bool can_buffer=false) override { return orig->send_body(body, cb, can_buffer); }
 				virtual void send_body(std::istream& body, std::function<void(std::shared_ptr<connection>, bool)> cb) override { return orig->send_body(body, cb); }

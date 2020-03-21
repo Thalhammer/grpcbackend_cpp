@@ -20,16 +20,17 @@ namespace thalhammer {
 			std::multimap<std::string, std::string> resp_headers;
 
 			std::mutex response_queue_lck;
-			std::queue<std::shared_ptr<const ::thalhammer::http::HandleWebSocketResponse>> response_queue;
+			std::queue<std::pair<std::shared_ptr<const ::thalhammer::http::HandleWebSocketResponse>, std::function<void()>>> response_queue;
 
 			void send_cb(bool ok) {
 				auto that = this->shared_from_this();
 				std::unique_lock<std::mutex> lck(this->response_queue_lck);
-				bool done = response_queue.front()->message().type() == thalhammer::http::WebSocketMessage::CLOSE;
+				bool done = response_queue.front().first->message().type() == thalhammer::http::WebSocketMessage::CLOSE;
+				auto cb = response_queue.front().second;
 				service.get_logger()(ttl::loglevel::TRACE, "websocket") << "write ok:" << (ok ?"true":"false");
 				response_queue.pop();
 				if(!this->done && !response_queue.empty()) {
-					stream.Write(*response_queue.front(), new cont_function_t([that](bool ok){
+					stream.Write(*response_queue.front().first, new cont_function_t([that](bool ok){
 						that->send_cb(ok);
 					}));
 				}
@@ -40,14 +41,18 @@ namespace thalhammer {
 						that->service.get_logger()(ttl::loglevel::TRACE, "websocket") <<"finish (server) called";
 					}));
 				}
+				lck.unlock();
+				try {
+					if(cb) cb();
+				} catch(...) {}
 			}
 
-			void queue_response(std::shared_ptr<const ::thalhammer::http::HandleWebSocketResponse> msg) {
+			void queue_response(std::shared_ptr<const ::thalhammer::http::HandleWebSocketResponse> msg, std::function<void()> cb) {
 				std::unique_lock<std::mutex> lck(this->response_queue_lck);
-				response_queue.emplace(std::move(msg));
+				response_queue.emplace(decltype(response_queue)::value_type{msg, cb});
 				if(response_queue.size() == 1) {
 					auto that = this->shared_from_this();
-					stream.Write(*response_queue.front(), new cont_function_t([that](bool ok){
+					stream.Write(*response_queue.front().first, new cont_function_t([that](bool ok){
 						that->send_cb(ok);
 					}));
 				}
@@ -102,7 +107,7 @@ namespace thalhammer {
 					hdr->set_key(entry.first);
 					hdr->set_value(entry.second);
 				}
-				this->queue_response(msg2);
+				this->queue_response(msg2, [](){});
 			}
 
 			void on_message(std::shared_ptr<const ::thalhammer::http::WebSocketMessage> msg) {
@@ -126,19 +131,24 @@ namespace thalhammer {
 			}
 
 			virtual void send_message(bool bin, const std::string& buf) override {
+				return send_message(bin, buf, {});
+			}
+
+
+			virtual void send_message(bool bin, const std::string& buf, std::function<void()> cb) override {
 				if(this->done) return;
 				auto msg = std::make_shared<::thalhammer::http::HandleWebSocketResponse>();
 				auto ptr = msg->mutable_message();
 				ptr->set_content(buf);
 				ptr->set_type(bin ? ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_BINARY : ::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_TEXT);
-				this->queue_response(msg);
+				this->queue_response(msg, cb);
 			}
 
 			virtual void close() override {
 				if(this->done) return;
 				auto msg = std::make_shared<::thalhammer::http::HandleWebSocketResponse>();
 				msg->mutable_message()->set_type(::thalhammer::http::WebSocketMessage_Type::WebSocketMessage_Type_CLOSE);
-				this->queue_response(msg);
+				this->queue_response(msg, [](){});
 			}
 
 			// Clientinfo
@@ -306,21 +316,30 @@ namespace thalhammer {
 				lck.release();
 			}
 
-			static void skip_helper(std::shared_ptr<connection> con, bool ok, std::string, std::function<void(std::shared_ptr<connection>, bool)> cb) {
+			static void read_body_helper(std::shared_ptr<connection> con, bool ok, std::string str, std::function<void(std::shared_ptr<connection>, bool, std::string)> cb, std::string* buf) {
 				if(ok) {
-					con->read_body(std::bind(skip_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb));
+					if(buf) *buf += str;
+					con->read_body(std::bind(read_body_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb, buf));
 				} else {
 					try {
 						if(cb)
-							cb(con, ok);
+							cb(con, ok, buf ? *buf : "");
 					} catch(...) {
 						http::router::handle_exception(con, std::current_exception());
 					}
+					if(buf) delete buf;
 				}
 			}
 
+			virtual void read_body_full(std::function<void(http::connection_ptr, bool, std::string)> cb) override  {
+				auto buf = new std::string;
+				this->read_body(std::bind(read_body_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb, buf));
+			}
+
 			virtual void skip_body(std::function<void(std::shared_ptr<connection>, bool)> cb) override {
-				this->read_body(std::bind(skip_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, cb));
+				this->read_body(std::bind(read_body_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, [cb](auto con, auto b, auto){
+					if(cb) cb(con, b);
+				}, nullptr));
 			}
 
 			virtual void send_body(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb, bool can_buffer) override {
