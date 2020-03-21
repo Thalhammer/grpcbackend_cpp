@@ -6,7 +6,12 @@ namespace thalhammer {
 
 			hub::hub(ttl::logger& logger)
 				: _logger(logger)
-			{}
+			{
+				auto g = std::make_shared<group>();
+				g->name = "";
+				g->handler = nullptr;
+				_groups[""] = g;
+			}
 			hub::~hub() {
 			}
 
@@ -24,7 +29,15 @@ namespace thalhammer {
 			void hub::on_connect(connection_ptr con)
 			{
 				_logger(ttl::loglevel::TRACE, "wshub") << "on_connect: 0x" << std::hex << con.get();
-				auto hdl = std::atomic_load(&_default_handler);
+				auto g = _groups.at("");
+				auto hdl = std::atomic_load(&g->handler);
+				auto attr = std::make_shared<group_attribute>();
+				con->set_attribute(attr);
+				attr->group = g;
+				{
+					std::unique_lock<std::mutex> lck(g->cons_lck);
+					g->cons.insert(con);
+				}
 				if(hdl)
 					hdl->on_connect(con);
 			}
@@ -33,7 +46,7 @@ namespace thalhammer {
 			{
 				_logger(ttl::loglevel::TRACE, "wshub") << "on_message: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
-				auto hdl = std::atomic_load(&_default_handler);
+				auto hdl = std::atomic_load(&_groups.at("")->handler);
 				if(attr) {
 					auto group = attr->group.lock();
 					if(group) {
@@ -48,7 +61,7 @@ namespace thalhammer {
 			{
 				_logger(ttl::loglevel::TRACE, "wshub") << "on_disconnect: 0x" << std::hex << con.get();
 				auto attr = con->get_attribute<group_attribute>();
-				auto hdl = std::atomic_load(&_default_handler);
+				auto hdl = std::atomic_load(&_groups.at("")->handler);
 				if(attr) {
 					auto group = attr->group.lock();
 					if(group) {
@@ -68,7 +81,7 @@ namespace thalhammer {
 
 			hub& hub::set_default_handler(std::shared_ptr<con_handler> handler)
 			{
-				std::atomic_store(&_default_handler, handler);
+				std::atomic_store(&_groups.at("")->handler, handler);
 				return *this;
 			}
 
@@ -83,7 +96,12 @@ namespace thalhammer {
 					attr = std::make_shared<group_attribute>();
 					con->set_attribute(attr);
 				}
-				auto g = _groups.at(gname);
+				auto g = attr->group.lock();
+				if(g) {
+					std::unique_lock<std::mutex> lck(g->cons_lck);
+					g->cons.erase(con);
+				}
+				g = _groups.at(gname);
 				attr->group = g;
 				{
 					std::unique_lock<std::mutex> lck(g->cons_lck);
@@ -106,7 +124,7 @@ namespace thalhammer {
 			hub& hub::add_group(const std::string& name, std::shared_ptr<con_handler> handler)
 			{
 				if(!handler) {
-					handler = std::atomic_load(&_default_handler);
+					handler = std::atomic_load(&_groups.at("")->handler);
 				}
 				if(_groups.count(name)==0) {
 					auto g = std::make_shared<group>();
@@ -148,17 +166,36 @@ namespace thalhammer {
 
 			hub& hub::close_group(const std::string& gname)
 			{
+				for(auto& e : get_group_connections(gname))
+					e->close();
+				return *this;
+			}
+
+			std::set<connection_ptr> hub::get_group_connections(const std::string& gname)
+			{
 				std::set<connection_ptr> cons;
 				if(_groups.count(gname)!=0) {
-					auto g = _groups[gname];
+					auto g = _groups.at(gname);
 					if(g) {
 						std::unique_lock<std::mutex> lck(g->cons_lck);
 						cons = g->cons;
 					}
 				}
-				for(auto& e : cons)
-					e->close();
-				return *this;
+				return cons;
+			}
+
+			std::set<connection_ptr> hub::get_group_connections(connection_ptr con)
+			{
+				std::set<connection_ptr> cons;
+				auto attr = con->get_attribute<group_attribute>();
+				if(attr) {
+					auto g = attr->group.lock();
+					if(g) {
+						std::unique_lock<std::mutex> lck(g->cons_lck);
+						cons = g->cons;
+					}
+				}
+				return cons;
 			}
 		}
 	}

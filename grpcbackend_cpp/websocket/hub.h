@@ -24,7 +24,6 @@ namespace thalhammer {
 					std::weak_ptr<hub::group> group;
 				};
 
-				std::shared_ptr<con_handler> _default_handler;
 				ttl::logger& _logger;
 			public:
 				explicit hub(ttl::logger& logger);
@@ -51,6 +50,10 @@ namespace thalhammer {
 				hub& broadcast(const connection_ptr& con, bool bin, const std::string& msg);
 				/* Close connections of a specific group */
 				hub& close_group(const std::string& gname);
+				/* Get a set of connections in a specific group */
+				std::set<connection_ptr> get_group_connections(const std::string& gname);
+				/* Get a set of connections in the group of the specified connection */
+				std::set<connection_ptr> get_group_connections(connection_ptr con);
 			};
 		}
 	}
