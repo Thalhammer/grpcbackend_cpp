@@ -30,15 +30,15 @@ all: release debug | $(PROTOHEADERS)
 release: release_static release_shared | $(PROTOHEADERS)
 debug: debug_static debug_shared | $(PROTOHEADERS)
 
-debug_static: FLAGS += -g -Og -fsanitize=address -fno-omit-frame-pointer
-debug_static: LINKFLAGS += -lasan
+debug_static: FLAGS += -g -Og  -fno-omit-frame-pointer
+debug_static: LINKFLAGS +=
 debug_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=debug/static)
 	$(eval export FLAGS)
 	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).a --no-print-directory
-release_static: FLAGS += -O2 -march=native
+release_static: FLAGS += -O2
 release_static: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/static)
 	$(eval export FLAGS)
@@ -54,7 +54,7 @@ debug_shared: | $(PROTOHEADERS)
 	$(eval export LINKFLAGS)
 	$(eval export BUILDDIR)
 	@+make $(BUILDDIR)/$(OUTNAME).so --no-print-directory
-release_shared: FLAGS += -O2 -fPIC -march=native -flto
+release_shared: FLAGS += -O2 -fPIC -flto
 release_shared: | $(PROTOHEADERS)
 	$(eval BUILDDIR=release/shared)
 	$(eval export FLAGS)
@@ -128,7 +128,7 @@ package: | release
 	@cp release/shared/$(OUTNAME).so $(DEBFOLDER)/usr/lib/$(OUTNAME).so.$(DEBVERSION)
 	@cp release/static/$(OUTNAME).a $(DEBFOLDER)/usr/lib/$(OUTNAME).a
 	@ln -s $(OUTNAME).so.$(DEBVERSION) $(DEBFOLDER)/usr/lib/$(OUTNAME).so
-	@$(FPM) -n libgrpcbackend0 --description "Provides a library to help developing a service for mod_grpcbackend." -d "libssl1.0.0" -d "libstdc++6" -d "libgcc1" usr/lib/$(OUTNAME).so.$(DEBVERSION)
+	@$(FPM) -n libgrpcbackend0 --description "Provides a library to help developing a service for mod_grpcbackend." -d "libssl1.0.0" -d "libstdc++6" -d "libgcc1" -d "libgrpc-dev" -d "libgrpc++-dev" -d "libprotobuf-dev" usr/lib/$(OUTNAME).so.$(DEBVERSION)
 	@$(FPM) -n libgrpcbackend-dev --description "Provides a library to help developing a service for mod_grpcbackend (development headers)" -d "libgrpcbackend0 = $(DEBVERSION)-$(DEBITERATION)" usr/include/grpcbackend usr/lib/$(OUTNAME).a usr/lib/$(OUTNAME).so
 
 install: | package
