@@ -71,6 +71,9 @@ namespace thalhammer {
 					else return empty;
 				}
 
+				bool is_get() const { return get_method() == "GET"; }
+				bool is_post() const { return get_method() == "POST"; }
+
 				virtual std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() = 0;
 				virtual const std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() const = 0;
 

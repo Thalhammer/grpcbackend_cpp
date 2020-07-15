@@ -4,10 +4,10 @@
 #include <cassert>
 #include <cstring>
 #include <ttl/io/zip_reader.h>
-#include <boost/filesystem.hpp>
 #include <fstream>
+#include <experimental/filesystem>
 
-namespace fs = boost::filesystem;
+namespace fs = std::experimental::filesystem;
 
 namespace thalhammer {
 	namespace grpcbackend {
@@ -23,16 +23,16 @@ namespace thalhammer {
 			auto status = fs::status(path);
 			fs_entry entry;
 			switch(status.type()) {
-				case fs::file_type::directory_file:
+				case fs::file_type::directory:
 					entry.type = fs_filetype::directory; break;
-				case fs::file_type::regular_file:
+				case fs::file_type::regular:
 					entry.type = fs_filetype::file; break;
 				default:
 					entry.type = fs_filetype::unknown; break;
 			}
 			entry.name = bpath.string();
 			entry.file_name = bpath.has_filename() ? bpath.filename().string() : "";
-			entry.lmodified = fs::last_write_time(bpath);
+			entry.lmodified = std::chrono::system_clock::to_time_t(fs::last_write_time(bpath));
 			if(entry.is_file())
 				entry.size = fs::file_size(bpath);
 			
@@ -44,12 +44,12 @@ namespace thalhammer {
 			for(auto& entry : fs::directory_iterator(path)) {
 				fs_entry me;
 				me.file_name = entry.path().has_filename() ? entry.path().filename().string() : "";
-				me.lmodified = fs::last_write_time(entry.path());
+				me.lmodified = std::chrono::system_clock::to_time_t(fs::last_write_time(entry.path()));
 				me.name = entry.path().string();
 				switch(entry.status().type()) {
-					case fs::file_type::directory_file:
+					case fs::file_type::directory:
 						me.type = fs_filetype::directory; break;
-					case fs::file_type::regular_file:
+					case fs::file_type::regular:
 						me.type = fs_filetype::file; break;
 					default:
 						me.type = fs_filetype::unknown; break;
