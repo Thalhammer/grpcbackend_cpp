@@ -1,5 +1,5 @@
 #pragma once
-#include <http/connection.h>
+#include <grpcbackend/http/connection.h>
 #include <ttl/string_util.h>
 
 struct dummy_connection : thalhammer::grpcbackend::http::connection {

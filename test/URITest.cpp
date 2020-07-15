@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <uri.h>
+#include <grpcbackend/uri.h>
 
 using namespace thalhammer::grpcbackend;
 

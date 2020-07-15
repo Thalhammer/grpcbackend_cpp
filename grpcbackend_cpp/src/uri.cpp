@@ -1,4 +1,4 @@
-#include "uri.h"
+#include <grpcbackend/uri.h>
 
 namespace thalhammer {
 	namespace grpcbackend {

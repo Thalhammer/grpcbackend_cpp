@@ -1,5 +1,5 @@
-#include "mime_type.h"
-#include "connection_forward.h"
+#include <grpcbackend/http/mw/mime_type.h>
+#include <grpcbackend/http/mw/connection_forward.h>
 #include <magic.h>
 #include <mutex>
 
@@ -68,7 +68,7 @@ namespace thalhammer {
                             bool type_set = false;
                         public:
                             my_connection(connection_ptr porig, const std::string& pmime) : connection_forward(porig), mime(pmime) {}
-                            void set_header(const std::string& key, const std::string& value, bool replace = false) override {
+                            void set_header(const std::string& key, const std::string& value, bool replace) override {
                                 connection_forward::set_header(key, value, replace);
                                 std::string data = key;
                                 std::transform(data.begin(), data.end(), data.begin(), ::tolower);
@@ -83,7 +83,7 @@ namespace thalhammer {
                                 set_header();
                                 return connection_forward::send_body(body, cb);
                             }
-                            void end(std::function<void(std::shared_ptr<connection>, bool)> cb = [](std::shared_ptr<connection>, bool){}) override {
+                            void end(std::function<void(std::shared_ptr<connection>, bool)> cb) override {
                                 set_header();
                                 return connection_forward::end(cb);
                             }

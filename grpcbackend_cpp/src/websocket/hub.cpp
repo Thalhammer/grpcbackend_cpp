@@ -1,4 +1,4 @@
-#include "hub.h"
+#include <grpcbackend/websocket/hub.h>
 
 namespace thalhammer {
 	namespace grpcbackend {

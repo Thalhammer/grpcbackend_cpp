@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "dummy_connection.h"
-#include <http/router.h>
-#include <http/route_params.h>
+#include <grpcbackend/http/router.h>
+#include <grpcbackend/http/route_params.h>
 
 using namespace thalhammer::grpcbackend;
 

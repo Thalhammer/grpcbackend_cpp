@@ -1,4 +1,4 @@
-#include "logger.h"
+#include <grpcbackend/http/mw/logger.h>
 
 namespace thalhammer {
 	namespace grpcbackend {

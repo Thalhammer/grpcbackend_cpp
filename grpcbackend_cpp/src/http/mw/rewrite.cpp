@@ -1,5 +1,5 @@
-#include "rewrite.h"
-#include "connection_forward.h"
+#include <grpcbackend/http/mw/rewrite.h>
+#include <grpcbackend/http/mw/connection_forward.h>
 
 namespace thalhammer {
 	namespace grpcbackend {

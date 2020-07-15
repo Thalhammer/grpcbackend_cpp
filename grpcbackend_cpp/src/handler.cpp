@@ -1,7 +1,7 @@
-﻿#include "handler.h"
-#include <queue>
+﻿#include <grpcbackend/handler.h>
+#include <grpcbackend/http/router.h>
 #include <ttl/logger.h>
-#include "http/router.h"
+#include <queue>
 
 namespace thalhammer {
 	namespace grpcbackend {
