@@ -53,7 +53,7 @@ add_subdirectory(grpcbackend_cpp)
 add_subdirectory(test)
 add_subdirectory(example_app)
 
-add_subdirectory(json_rpc_api_plugin)
+add_subdirectory(protoc-gen-jsonrpc)
 
 if (UNIX)
     #set(CPACK_GENERATOR "DEB;STGZ;TGZ;TZ")
