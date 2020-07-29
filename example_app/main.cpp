@@ -15,6 +15,7 @@ int main(int argc, const char** argv) try {
 	class wshandler : public websocket::con_handler {
 		server& _s;
 	public:
+		wshandler(server& s) : _s(s) {}
 		void on_connect(websocket::connection_ptr con) override
 		{}
 		void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
