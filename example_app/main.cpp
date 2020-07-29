@@ -1,8 +1,8 @@
-#include "server.h"
-#include "http/router.h"
-#include "websocket/hub.h"
+#include <grpcbackend/server.h>
+#include <grpcbackend/http/router.h>
+#include <grpcbackend/websocket/hub.h>
+#include <grpcbackend/filesystem.h>
 #include <grpc++/grpc++.h>
-#include "filesystem.h"
 #include <unistd.h>
 #include <ttl/module.h>
 
@@ -15,15 +15,14 @@ int main(int argc, const char** argv) try {
 	class wshandler : public websocket::con_handler {
 		server& _s;
 	public:
-		wshandler(server& s) : _s(s) {}
-		virtual void on_connect(websocket::connection_ptr con) override
+		void on_connect(websocket::connection_ptr con) override
 		{}
-		virtual void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
+		void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Message " << msg;
 			_s.get_wshub().broadcast(con, bin, msg);
 			//con->send_message(bin, msg);
 		}
-		virtual void on_disconnect(websocket::connection_ptr con) override {
+		void on_disconnect(websocket::connection_ptr con) override {
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Closed connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
 	};
@@ -33,13 +32,6 @@ int main(int argc, const char** argv) try {
 		defaulthandler(server& s) : _s(s) {}
 		virtual void on_connect(websocket::connection_ptr con) override
 		{
-			std::thread([con](){
-				for(int i = 10; i> 0; i--) {
-					std::this_thread::sleep_for(std::chrono::seconds(1));
-					con->send_message(false, std::to_string(i));
-				}
-				con->close();
-			}).detach();
 			_s.get_wshub().set_connection_group(con, "default");
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Opened connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
