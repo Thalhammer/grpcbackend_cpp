@@ -34,7 +34,7 @@ execute_process(
 
 # Debs
 set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_PACKAGE_NAME "libgrpcbackend_cpp")
+set(CPACK_PACKAGE_NAME "libgrpcbackend")
 set(CPACK_PACKAGE_VENDOR "Dominik Thalhammer")
 set(CPACK_PACKAGE_CONTACT "dominik@thalhammer.it")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Grpc Backend")
