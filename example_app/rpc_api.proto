@@ -1,0 +1,28 @@
+syntax = "proto3";
+import "grpcbackend/jsonrpc.proto";
+
+package test;
+
+
+message TestRequest {
+	message SubMessage {
+		int32 test = 1;
+		enum TestEnum {
+			TEST = 0;
+			TEST2 = 1;
+		}
+		TestEnum _enum = 2;
+		bytes bfield = 3;
+	}
+	string request = 1;
+	SubMessage msg = 2;
+}
+
+message TestResponse {
+	//option json_rpc_message.client_verify_messages = true;
+	string response = 1;
+}
+
+service TestService {
+	rpc Test(TestRequest) returns (TestResponse);
+}

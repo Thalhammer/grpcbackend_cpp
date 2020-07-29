@@ -1,0 +1,44 @@
+syntax = "proto3";
+import "google/protobuf/descriptor.proto";
+
+/*
+    This is the message used to store all our options.
+*/
+message JsonRPCApiFieldOptions {
+    bool is_optional = 1;
+}
+message JsonRPCApiServiceOptions {
+    string basename = 1;
+}
+message JsonRPCApiMessageOptions {
+    bool client_verify_messages = 1;
+}
+
+/*
+    This extends the FieldOptions structure to support custom options.
+    You can the following options:
+    - FileOptions
+    - MessageOptions
+    - FieldOptions
+    - OneofOptions
+    - EnumOptions
+    - EnumValueOptions
+    - ServiceOptions
+    - MethodOptions
+    Field ids larger than 1000 are usable for extensions, however you need to get your
+    use case registered with protobuf.
+    The range 50000-99999 is reserved for use inside organizations but might collide with
+    other peoples code.
+
+    While we could directly define multiple options in the extension method, its a good
+    practice to instead put them all into a single message type and use only one option id.
+*/
+extend google.protobuf.FieldOptions {
+    JsonRPCApiFieldOptions json_rpc_field = 50000;
+}
+extend google.protobuf.ServiceOptions {
+    JsonRPCApiServiceOptions json_rpc_service = 50000;
+}
+extend google.protobuf.MessageOptions {
+    JsonRPCApiMessageOptions json_rpc_message = 50000;
+}

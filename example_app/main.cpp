@@ -2,28 +2,43 @@
 #include <grpcbackend/http/router.h>
 #include <grpcbackend/websocket/hub.h>
 #include <grpcbackend/filesystem.h>
+#include <grpcbackend/util/json_rpc.h>
 #include <grpc++/grpc++.h>
 #include <unistd.h>
 #include <ttl/module.h>
 
+#include "out/rpc_api.proto.h"
+
 using namespace thalhammer::grpcbackend;
 
 int main(int argc, const char** argv) try {
+	(void)argc; (void) argv;
 	std::cout.sync_with_stdio(true);
 	server mserver;
 
-	class wshandler : public websocket::con_handler {
+	class wshandler : public websocket::con_handler, public test::TestService {
 		server& _s;
+		util::json_rpc _rpc;
 	public:
+		wshandler(server& s) : _s(s) {
+			(void)s;
+			this->register_service(_rpc);
+		}
 		void on_connect(websocket::connection_ptr con) override
-		{}
+		{ (void)con; }
 		void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
+			(void)bin;
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Message " << msg;
-			_s.get_wshub().broadcast(con, bin, msg);
-			//con->send_message(bin, msg);
+			_rpc.handle_message(msg, [con](const std::string& str){ con->send_message(false, str); });
 		}
 		void on_disconnect(websocket::connection_ptr con) override {
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Closed connection from " << con->get_client_ip() << ":" << con->get_client_port();
+		}
+
+		void Test(std::shared_ptr<thalhammer::grpcbackend::util::json_rpc_query<test::TestRequest,test::TestResponse>> context) override {
+			test::TestResponse resp;
+			resp.response = context->get_request().request;
+			return context->respond(resp);
 		}
 	};
 	class defaulthandler : public websocket::con_handler {
@@ -36,8 +51,10 @@ int main(int argc, const char** argv) try {
 			_s.get_logger()(ttl::loglevel::INFO, "ws") << "Opened connection from " << con->get_client_ip() << ":" << con->get_client_port();
 		}
 		virtual void on_message(websocket::connection_ptr con, bool bin, const std::string& msg) override {
+			(void)con; (void)bin; (void)msg;
 		}
 		virtual void on_disconnect(websocket::connection_ptr con) override {
+			(void)con;
 		}
 	};
 

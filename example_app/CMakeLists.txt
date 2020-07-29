@@ -1,5 +1,6 @@
 add_executable(example_app
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/out/rpc_api.proto.cpp)
 set_property(TARGET example_app PROPERTY CXX_STANDARD 14)
 target_compile_options(example_app PRIVATE 
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
