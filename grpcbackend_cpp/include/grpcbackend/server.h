@@ -7,13 +7,11 @@
 
 namespace grpc_impl {
 	class Server;
-	class ServerBuilder;
 }
 namespace grpc {
+	class ServerBuilder;
 	typedef ::grpc_impl::Server Server;
-	typedef ::grpc_impl::ServerBuilder ServerBuilder;
 }
-
 
 namespace thalhammer {
 	namespace grpcbackend {

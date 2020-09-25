@@ -3,8 +3,9 @@ set(PROTOBUF_GENERATE_CPP_APPEND_PATH False)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 
-find_package(Protobuf REQUIRED)
-find_package(GRPC REQUIRED)
+find_package(protobuf REQUIRED)
+find_package(gRPC REQUIRED)
+include(GenerateGRPC)
 
 GRPC_PB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
     handler.proto
@@ -31,8 +32,7 @@ SET(GRPCBACKEND_PUBLIC_HDRS
 )
 SET(GRPCBACKEND_PRIVATE_HDRS
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}../ttl/ttl/include/
-    ${PROTOBUF_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../ttl/ttl/include/
 )
 
 add_library(grpcbackend_cpp-static STATIC ${GRPCBACKEND_SRCS})
@@ -42,41 +42,8 @@ set_target_properties(grpcbackend_cpp-shared PROPERTIES OUTPUT_NAME grpcbackend_
 set_target_properties(grpcbackend_cpp-static PROPERTIES OUTPUT_NAME grpcbackend_cpp)
 set_target_properties(grpcbackend_cpp-shared PROPERTIES VERSION ${VERSION_SHORT} SOVERSION ${VERSION_MAJOR})
 
-target_link_libraries(grpcbackend_cpp-static
-  date
-  libprotobuf.a
-  libgrpc++.a
-  libgrpc.a
-  libgpr.a
-  libupb.a
-  libcrypto.a
-  libssl.a
-  libcrypto.a
-  libz.a
-  libabsl.a
-  libcares.a
-  libaddress_sorting.a
-  libstdc++fs.a
-  dl
-  pthread
-)
-target_link_libraries(grpcbackend_cpp-shared
-  date
-  protobuf
-  grpc++
-  grpc
-  gpr
-  upb
-  crypto
-  ssl
-  z
-  absl
-  cares
-  address_sorting
-  stdc++fs
-  dl
-  pthread
-)
+target_link_libraries(grpcbackend_cpp-static date gRPC::grpc++ stdc++fs)
+target_link_libraries(grpcbackend_cpp-shared date gRPC::grpc++ stdc++fs)
 
 target_include_directories(grpcbackend_cpp-static PUBLIC ${GRPCBACKEND_PUBLIC_HDRS})
 target_include_directories(grpcbackend_cpp-static PRIVATE ${GRPCBACKEND_PRIVATE_HDRS})

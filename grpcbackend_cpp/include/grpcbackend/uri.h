@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <set>
+#include <stdexcept>
 
 namespace thalhammer {
 	namespace grpcbackend {

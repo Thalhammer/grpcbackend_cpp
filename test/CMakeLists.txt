@@ -12,4 +12,7 @@ target_compile_options(grpcbackend-test PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Weverything>)
+target_include_directories(grpcbackend-test
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ttl/ttl/include/
+)
 target_link_libraries(grpcbackend-test PRIVATE grpcbackend_cpp-static gtest gtest_main pthread ZLIB::ZLIB ${CMAKE_DL_LIBS})

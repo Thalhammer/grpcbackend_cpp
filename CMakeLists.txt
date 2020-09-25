@@ -5,7 +5,8 @@ find_package (Git)
 if (GIT_FOUND)
     execute_process(
         COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d
-        OUTPUT_VARIABLE VERSION)
+        OUTPUT_VARIABLE VERSION
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 else (GIT_FOUND)
       set(VERSION "v0.0.0-0-00000000-d")
 endif (GIT_FOUND)
@@ -26,6 +27,10 @@ enable_testing()
 include(GoogleTest)
 
 find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
+
+add_definitions(-DHAS_UNCAUGHT_EXCEPTIONS=1)
+add_compile_options(-Wno-unused-parameter)
 
 execute_process(
     COMMAND dpkg --print-architecture
