@@ -47,13 +47,15 @@ int main(int argc, const char** argv) try {
 		.set_debug_mode(true)
 		.log_requests(mserver.get_logger())
 		.mime_detector()
+		.rewrite("/", "/index.html")
 		.serve_dir("/", "./public/");
 		//.serve_dir("/", "./public/", true, std::make_shared<zipfilesystem>(thalhammer::module::current_module().get_filename()));
 	mserver.get_wshub()
 		.set_default_handler(std::make_shared<defaulthandler>(mserver))
 		.add_group("default", std::make_shared<wshandler>(mserver));
 
-	mserver.get_builder().AddListeningPort("0.0.0.0:50051", grpc::InsecureServerCredentials());
+	mserver.get_builder().AddListeningPort("[::]:50051", grpc::InsecureServerCredentials());
+	mserver.get_builder().AddListeningPort("unix:/tmp/grpcbackend.sock", grpc::InsecureServerCredentials());
 
 	mserver.start_server();
 

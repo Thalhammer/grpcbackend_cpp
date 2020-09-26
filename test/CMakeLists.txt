@@ -4,7 +4,8 @@ include(GoogleTest)
 set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/RequestTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RouterTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/URITest.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/URITest.cpp
+)
 
 add_executable(grpcbackend-test ${TEST_SOURCES})
 set_property(TARGET grpcbackend-test PROPERTY CXX_STANDARD 14)
@@ -13,6 +14,7 @@ target_compile_options(grpcbackend-test PRIVATE
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -Wpedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Weverything>)
 target_include_directories(grpcbackend-test
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ttl/ttl/include/
+    PRIVATE ${CMAKE_BINARY_DIR}/ttl/ttl/include/
 )
+target_compile_options(grpcbackend-test PRIVATE -Wno-unused-parameter)
 target_link_libraries(grpcbackend-test PRIVATE grpcbackend_cpp-static gtest gtest_main pthread ZLIB::ZLIB ${CMAKE_DL_LIBS})

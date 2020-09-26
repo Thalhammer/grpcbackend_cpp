@@ -1,22 +1,21 @@
 #pragma once
-#include "../attribute.h"
-#include <memory>
-#include <map>
-#include <typeindex>
+#include <grpcbackend/attribute_host.h>
+#include <grpcbackend/uri.h>
 #include <string>
-#include "../uri.h"
-#include <ttl/string_util.h>
 #include <functional>
+#include <optional>
 
 namespace thalhammer {
 	namespace grpcbackend {
 		namespace http {
-			class connection
+			class connection : public attribute_host
 			{
-				std::unique_ptr<uri> _parsed_uri;
+				mutable std::optional<uri> _parsed_uri;
 			protected:
 			public:
 				virtual ~connection() {}
+				virtual attribute_map& get_attributes() = 0;
+				virtual const attribute_map& get_attributes() const = 0;
 
 				// Clientinfo
 				virtual const std::string& get_client_ip() const = 0;
@@ -50,52 +49,12 @@ namespace thalhammer {
 				virtual void end(std::string body, std::function<void(std::shared_ptr<connection>, bool)> cb = [](std::shared_ptr<connection>, bool){}) = 0;
 
 				/** Helper methods **/
-
-				const uri& get_parsed_uri() {
-					if (!_parsed_uri) {
-						_parsed_uri = std::make_unique<uri>(get_resource());
-					}
-					return *_parsed_uri;
-				}
-
-				bool has_header(const std::string& key) const {
-					return get_headers().count(ttl::string::to_lower_copy(key)) != 0;
-				}
-
-				const std::string& get_header(const std::string& key) const {
-					static const std::string empty = "";
-					auto k = ttl::string::to_lower_copy(key);
-					auto& headers = get_headers();
-					if (headers.count(k) != 0)
-						return headers.find(k)->second;
-					else return empty;
-				}
+				const uri& get_parsed_uri() const;
+				bool has_header(const std::string& key) const;
+				const std::string& get_header(const std::string& key) const;
 
 				bool is_get() const { return get_method() == "GET"; }
 				bool is_post() const { return get_method() == "POST"; }
-
-				virtual std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() = 0;
-				virtual const std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() const = 0;
-
-				template<typename T>
-				typename std::enable_if<std::is_base_of<attribute, T>::value, void>::type
-					set_attribute(std::shared_ptr<T> attr) {
-					get_attributes()[typeid(T)] = attr;
-				}
-
-				template<typename T>
-				typename std::enable_if<std::is_base_of<attribute, T>::value, bool>::type
-					has_attribute() const {
-					return get_attributes().count(typeid(T)) != 0;
-				}
-
-				template<typename T>
-				typename std::enable_if<std::is_base_of<attribute, T>::value, std::shared_ptr<T>>::type
-					get_attribute() const {
-					if (!has_attribute<T>())
-						return nullptr;
-					return std::dynamic_pointer_cast<T>(get_attributes().at(typeid(T)));
-				}
 			};
 			typedef std::shared_ptr<connection> connection_ptr;
 		}

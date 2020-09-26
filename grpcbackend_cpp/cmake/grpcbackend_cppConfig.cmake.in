@@ -1,0 +1,13 @@
+get_filename_component(grpcbackend_cpp_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+find_dependency(protobuf REQUIRED)
+find_dependency(gRPC REQUIRED)
+
+if(NOT TARGET grpcbackend_cpp::grpcbackend_cpp-static)
+    include("${grpcbackend_cpp_CMAKE_DIR}/grpcbackend_cppTargets.cmake")
+    add_library(grpcbackend_cpp::grpcbackend_cpp ALIAS grpcbackend_cpp::grpcbackend_cpp-static)
+    add_library(grpcbackend_cpp ALIAS grpcbackend_cpp::grpcbackend_cpp-static)
+endif()
+
+set(grpcbackend_cpp_lIBRARIES grpcbackend_cpp::grpcbackend_cpp)

@@ -34,10 +34,10 @@ namespace thalhammer {
 				virtual bool is_body_read() const override { return orig->is_body_read(); }
 				virtual bool is_finished() const override { return orig->is_finished(); }
 
-				virtual std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() override {
+				virtual attribute_map& get_attributes() override {
 					return orig->get_attributes();
 				}
-				virtual const std::map<std::type_index, std::shared_ptr<attribute>>& get_attributes() const override {
+				virtual const attribute_map& get_attributes() const override {
 					return orig->get_attributes();
 				}
 

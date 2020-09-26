@@ -1,6 +1,7 @@
 ﻿#include <grpcbackend/handler.h>
 #include <grpcbackend/http/router.h>
 #include <ttl/logger.h>
+#include <ttl/string_util.h>
 #include <queue>
 
 namespace thalhammer {

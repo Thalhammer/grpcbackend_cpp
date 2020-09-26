@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-project(grpcbackend)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 find_package (Git)
 if (GIT_FOUND)
@@ -22,15 +23,12 @@ set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 #                ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 #set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.cpp")
 
-# Testing
-enable_testing()
-include(GoogleTest)
+project(grpcbackend
+    VERSION ${VERSION_SHORT}
+)
 
 find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
-
-add_definitions(-DHAS_UNCAUGHT_EXCEPTIONS=1)
-add_compile_options(-Wno-unused-parameter)
 
 execute_process(
     COMMAND dpkg --print-architecture
@@ -53,10 +51,16 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dominik Thalhammer <dominik@thalhammer.it>"
 set(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set(CPACK_DEBIAN_PACKAGE_RELEASE "${VERSION_COMMIT}")
 
-add_subdirectory(date)
+option(BUILD_TESTS "Build tests" ON)
+option(BUILD_EXAMPLE "Build example_app" ON)
+
 add_subdirectory(grpcbackend_cpp)
-add_subdirectory(test)
-add_subdirectory(example_app)
+if(BUILD_TESTS)
+    add_subdirectory(test)
+endif(BUILD_TESTS)
+if(BUILD_EXAMPLE)
+    add_subdirectory(example_app)
+endif(BUILD_EXAMPLE)
 
 if (UNIX)
     #set(CPACK_GENERATOR "DEB;STGZ;TGZ;TZ")
