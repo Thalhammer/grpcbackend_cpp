@@ -19,6 +19,7 @@ git_clone(
 find_package(protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 include(GenerateGRPC)
+include(GNUInstallDirs)
 
 GRPC_PB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
     handler.proto
