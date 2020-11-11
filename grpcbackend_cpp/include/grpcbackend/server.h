@@ -5,12 +5,9 @@
 #include <atomic>
 #include <vector>
 
-namespace grpc_impl {
-	class Server;
-}
 namespace grpc {
 	class ServerBuilder;
-	typedef ::grpc_impl::Server Server;
+	class Server;
 }
 
 namespace thalhammer {
@@ -29,7 +26,6 @@ namespace thalhammer {
 			std::atomic<bool> exit;
 			std::vector<cqcontext> cqs;
 			std::unique_ptr<::grpc::ServerBuilder> builder;
-
 			std::unique_ptr<::grpc::Server> mserver;
 		public:
 			struct options {
