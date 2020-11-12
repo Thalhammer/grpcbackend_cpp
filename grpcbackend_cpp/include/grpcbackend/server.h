@@ -45,6 +45,7 @@ namespace thalhammer {
 			void shutdown_server(std::chrono::milliseconds max_wait = std::chrono::milliseconds(10000));
 
 			::grpc::ServerBuilder& get_builder() { return *builder; }
+			::grpc::Server& get_server() { return *mserver; }
 
 			ttl::logger& get_logger() { return *log; }
 			http::router& get_router() { return *router; }
