@@ -348,7 +348,13 @@ namespace thalhammer {
 				std::vector<std::string> parts;
 				for (auto& e : info) {
 					if (e.type == route_match_info::type_t::equals) {
-						parts.push_back(e.equals_str);
+						auto str = e.equals_str;
+						static const std::string escaped_chars{ "\\.*+?^${}()|[]" };
+						for(size_t i=0; i<escaped_chars.size(); i++) {
+							std::string sc = escaped_chars.substr(i, 1);
+							ttl::string::replace(str, sc, "\\"+ sc);
+						}
+						parts.push_back(str);
 					}
 					else if (e.type == route_match_info::type_t::match_all) {
 						if (e.param_name.empty())

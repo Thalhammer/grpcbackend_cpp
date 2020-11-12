@@ -144,3 +144,34 @@ TEST(RouterTest, MiddleWare) {
 		ASSERT_EQ(con->status_code, 404);
 	}
 }
+
+TEST(RouterTest, RouteEscapeRegexChars) {
+	http::router r;
+	bool called_route = false;
+	bool called_404 = false;
+	r.route("GET", "/test.jpg", [&](http::connection_ptr con) {
+		con->set_status(200);
+		called_route = true;
+	});
+	r.notfound([&](http::connection_ptr con){
+		con->set_status(404);
+		called_404 = true;
+	});
+
+	{
+		auto con = dummy_connection::make_get("/test.jpg");
+		called_route = called_404 = false;
+		r.on_request(con);
+		ASSERT_TRUE(called_route);
+		ASSERT_FALSE(called_404);
+		ASSERT_EQ(con->status_code, 200);
+	}
+	{
+		auto con = dummy_connection::make_get("/testajpg");
+		called_route = called_404 = false;
+		r.on_request(con);
+		ASSERT_FALSE(called_route);
+		ASSERT_TRUE(called_404);
+		ASSERT_EQ(con->status_code, 404);
+	}
+}
