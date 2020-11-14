@@ -1,8 +1,9 @@
 #include <grpcbackend/http/route/filesystem_route_handler.h>
 #include <grpcbackend/http/route_params.h>
-#include <vector>
+#include <grpcbackend/http/http_exception.h>
 #include <ttl/string_util.h>
 #include <date/date.h>
+#include <vector>
 #include <iomanip>
 
 using namespace std::string_literals;
@@ -74,8 +75,7 @@ namespace thalhammer {
 										});
 									}
 									else {
-										con->set_status(404, "Not found");
-										con->end();
+										throw notfound_exception{};
 									}
 								}
 							}
@@ -114,13 +114,11 @@ namespace thalhammer {
 								con->end(stream.str(), [](connection_ptr con, bool ok){});
 							}
 							else {
-								con->set_status(404, "Not found");
-								con->end();
+								throw notfound_exception{};
 							}
 						}
 						else {
-							con->set_status(404, "Not found");
-							con->end();
+							throw notfound_exception{};
 						}
 					});
 				}

@@ -214,8 +214,7 @@ namespace thalhammer {
 				}
 				catch (const http_exception& ex) {
 					if(ex.get_code() == 404) {
-						if(params->info->notfound_handler)
-							params->info->notfound_handler(con);
+						if(params->info->notfound_handler) params->info->notfound_handler(con);
 						else con->set_status(404);
 					} else if(ex.get_code() == 500) {
 						if(params->info->error_handler) params->info->error_handler(con, ex.get_message(), std::current_exception());
@@ -245,8 +244,7 @@ namespace thalhammer {
 				auto& map = info->routes;
 
 				if (map.count(method) == 0) {
-					if(info->notfound_handler)
-						info->notfound_handler(con);
+					if(info->notfound_handler) info->notfound_handler(con);
 					else con->set_status(404);
 					return;
 				}
@@ -281,8 +279,7 @@ namespace thalhammer {
 				}
 
 				if (!entry) {
-					if(info->notfound_handler)
-						info->notfound_handler(con);
+					if(info->notfound_handler) info->notfound_handler(con);
 					else con->set_status(404);
 					return;
 				}
